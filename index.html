@@ -20,12 +20,12 @@
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
     --bg:#1B2225; --surface:#243034; --surface2:#2B373C; --ink:#EDE8DC; --muted:#9BA7A7;
-    --line:#39474C; --gold:#E3B252; --gold-soft:#3E3423; --teal:#72B8AC; --teal-soft:#23403B; --red:#E57B70; --red-soft:#4A2B28;
+    --line:#39474C; --gold:#E3B252; --gold-soft:#4A3A16; --teal:#72B8AC; --teal-soft:#23403B; --red:#E57B70; --red-soft:#4A2B28;
   }
 }
 :root[data-theme="dark"]{
   --bg:#1B2225; --surface:#243034; --surface2:#2B373C; --ink:#EDE8DC; --muted:#9BA7A7;
-  --line:#39474C; --gold:#E3B252; --gold-soft:#3E3423; --teal:#72B8AC; --teal-soft:#23403B; --red:#E57B70; --red-soft:#4A2B28;
+  --line:#39474C; --gold:#E3B252; --gold-soft:#4A3A16; --teal:#72B8AC; --teal-soft:#23403B; --red:#E57B70; --red-soft:#4A2B28;
 }
 *,*::before,*::after{box-sizing:inherit}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
@@ -154,7 +154,8 @@ textarea.in{min-height:110px;resize:vertical;line-height:1.5}
 .wcard b{display:block;font-family:var(--serif);font-size:20px}
 .wcard span{display:block}
 .wcard small{display:block;color:var(--muted);font-size:14px;margin-top:3px}
-.wcard.on{border:2px solid var(--gold);background:var(--gold-soft)}
+.wcard.on{border:2px solid var(--gold);background:var(--gold-soft);box-shadow:0 0 0 3px var(--gold-soft)}
+.wcard.on b::after{content:" ✓ ausgewählt";font-family:var(--sans);font-size:14px;font-weight:700;color:var(--gold)}
 .wh{font-family:var(--serif);font-size:21px;margin:18px 0 0}
 .wprog{height:6px;background:var(--line);border-radius:4px;overflow:hidden;margin:6px 0 8px}
 .wprog i{display:block;height:100%;background:var(--gold)}
@@ -167,6 +168,11 @@ textarea.in{min-height:110px;resize:vertical;line-height:1.5}
 .linkbtn{background:none;border:0;color:var(--muted);text-decoration:underline;padding:8px 0}
 ul.tr{margin:6px 0 0;padding-left:18px}
 .tog:disabled{opacity:.4}
+.spell .n small{display:block;color:var(--muted);font-size:13px}
+details{border-bottom:1px solid var(--line);padding:4px 0}
+details:last-child{border-bottom:0}
+summary{cursor:pointer;padding:9px 0;font-weight:700;font-size:17px}
+details div{padding:0 0 12px}
 /* Navigation */
 nav{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px);z-index:10}
 nav .in2{max-width:720px;margin:0 auto;display:flex}
@@ -208,7 +214,7 @@ nav button.on{color:var(--ink);font-weight:700;border-top-color:var(--gold)}
 <div class="wrap">
   <div class="top">
     <select id="charSel" aria-label="Charakter wählen"></select>
-    <button class="iconbtn" id="newChar">+ Neu</button>
+    <button class="iconbtn" data-tab="regeln">Regeln</button><button class="iconbtn" id="newChar">+ Neu</button>
   </div>
   <div class="hero" id="hero"></div>
   <main id="main"></main>
@@ -264,6 +270,7 @@ const HELP={
   zwerte:["Zauberangriff und Zauber-SG","Zauberangriff: W20 + Bonus gegen die RK des Ziels, wie bei Waffen. Zauber-SG: Diesen Wert muss ein Gegner bei seinem Rettungswurf mindestens erreichen, sonst wirkt dein Zauber voll."],
   rast:["Rasten","Kurze Rast (ca. 1 Std.): Du kannst Trefferwürfel ausgeben und dich damit heilen. Lange Rast (8 Std.): Volle TP, alle Zauberplätze zurück und die Hälfte deiner Trefferwürfel."],
   tw:["Trefferwürfel","Bei einer kurzen Rast würfelst du einen davon + KON-Modifikator und heilst so viele TP. Du hast so viele, wie deine Stufe ist."],
+  insp:["Inspiration","Bekommst du vom Spielleiter für gutes Rollenspiel. Du kannst sie ausgeben, um bei einem Wurf Vorteil zu haben. Tippe dann auf den Knopf, damit sie verschwindet."],
   mode:["Vorteil und Nachteil","Bei Vorteil würfelst du zwei W20 und nimmst den höheren, bei Nachteil den niedrigeren. Der Spielleiter sagt dir, wann das gilt."]
 };
 
@@ -375,7 +382,7 @@ function renderTop(){
   const tabs=[["kampf","Kampf"],["werte","Werte"]];
   if(isCaster(c))tabs.push(["zauber","Zauber"]);
   tabs.push(["notizen","Notizen"],["bearbeiten","Bearbeiten"]);
-  if(!tabs.find(t=>t[0]===tab))tab="kampf";
+  if(tab!=="regeln"&&!tabs.find(t=>t[0]===tab))tab="kampf";
   $("#nav").innerHTML=tabs.map(([k,l])=>`<button data-tab="${k}" class="${k===tab?"on":""}">${l}</button>`).join("");
 }
 function modeBar(){
@@ -398,7 +405,7 @@ function vKampf(c){
     <div class="hprow"><input id="hpAmt" type="number" inputmode="numeric" min="0" placeholder="Menge" aria-label="Menge">
       <button class="btn dmg" data-act="dmg">Schaden</button><button class="btn heal" data-act="heal">Heilen</button></div>
     <div class="btnrow"><button class="btn" data-act="temp">Temporäre TP setzen</button>
-      <button class="chip ${c.inspiration?"on":""}" data-act="insp">Inspiration ${c.inspiration?"da":"keine"}</button></div>`;
+      <button class="chip ${c.inspiration?"on":""}" data-act="insp">Inspiration ${c.inspiration?"da":"keine"}</button>${helpBtn("insp")}</div>`;
   if(c.hp<=0||c.deathS||c.deathF){
     h+=`<div class="death"><span>Erfolge</span><div class="pips">${[0,1,2].map(i=>`<button class="pip s ${i<c.deathS?"on":""}" data-death="s${i+1}" aria-label="Erfolg ${i+1}"></button>`).join("")}</div>
       <span>Misserfolge</span><div class="pips">${[0,1,2].map(i=>`<button class="pip f ${i<c.deathF?"on":""}" data-death="f${i+1}" aria-label="Misserfolg ${i+1}"></button>`).join("")}</div></div>
@@ -447,7 +454,7 @@ function vZauber(c){
     h+=`</section>`;
   }
   h+=`<section class="card"><h2>Zaubertricks ${helpBtn("tricks")}</h2>`;
-  h+=c.cantrips.length?c.cantrips.map((n,i)=>`<div class="spell"><span class="n">${esc(n)}</span><button class="x" data-rmc="${i}" aria-label="Entfernen">×</button></div>`).join(""):`<p class="muted">Noch keine eingetragen.</p>`;
+  h+=c.cantrips.length?c.cantrips.map((n,i)=>`<div class="spell"><span class="n">${esc(n)}${SP[n]?`<small>${esc(SP[n][1])}</small>`:""}</span><button class="x" data-rmc="${i}" aria-label="Entfernen">×</button></div>`).join(""):`<p class="muted">Noch keine eingetragen.</p>`;
   h+=`</section>`;
   h+=`<section class="card"><h2>Zauber ${helpBtn("prep")}</h2>`;
   if(pm!==null)h+=`<p class="small ${prepCount>pm?"":"muted"}" style="${prepCount>pm?"color:var(--red)":""}">Vorbereitet: <b>${prepCount} von ${pm}</b>${prepCount>pm?", das sind zu viele":""}</p>`;
@@ -456,9 +463,9 @@ function vZauber(c){
   levels.forEach(l=>{
     h+=`<div class="grade">Grad ${l}</div>`;
     c.spells.forEach((s,i)=>{if(s.level!==l)return;
-      h+=`<div class="spell"><span class="n">${esc(s.name)}</span>${pm!==null?`<button class="tog ${s.prepared?"on":""}" data-prep="${i}">${s.prepared?"vorbereitet":"nicht vorbereitet"}</button>`:""}<button class="x" data-rms="${i}" aria-label="Entfernen">×</button></div>`});
+      h+=`<div class="spell"><span class="n">${esc(s.name)}${SP[s.name]?`<small>${esc(SP[s.name][1])}</small>`:""}</span>${pm!==null?`<button class="tog ${s.prepared?"on":""}" data-prep="${i}">${s.prepared?"vorbereitet":"nicht vorbereitet"}</button>`:""}<button class="x" data-rms="${i}" aria-label="Entfernen">×</button></div>`});
   });
-  h+=`<div class="addrow"><input class="in" id="spName" placeholder="Name eines Zaubers oder Tricks"><select class="in" id="spLvl" aria-label="Grad"><option value="0">Trick</option>${[1,2,3,4,5,6,7,8,9].map(n=>`<option value="${n}">Grad ${n}</option>`).join("")}</select><button class="btn" data-act="addSpell">Hinzufügen</button></div></section>`;
+  h+=`<div class="addrow"><input class="in" id="spName" list="spList" placeholder="Name eines Zaubers oder Tricks"><datalist id="spList">${Object.keys(SP).map(n=>`<option value="${esc(n)}">`).join("")}</datalist><select class="in" id="spLvl" aria-label="Grad"><option value="0">Trick</option>${[1,2,3,4,5,6,7,8,9].map(n=>`<option value="${n}">Grad ${n}</option>`).join("")}</select><button class="btn" data-act="addSpell">Hinzufügen</button></div></section>`;
   return h;
 }
 function vNotizen(c){
@@ -509,12 +516,13 @@ function vEdit(c){
 }
 function render(){
   $(".top").style.display=W?"none":"";if(W)return wRender();
+  if(!chars.length&&tab==="regeln"){$("#hero").innerHTML="";$("#nav").innerHTML="";$("#charSel").innerHTML="";$("#main").innerHTML=vRegeln()+`<button class="btn" data-tab="kampf">Zurück</button>`;return}
   if(!chars.length){$("#hero").innerHTML="";$("#nav").innerHTML="";$("#charSel").innerHTML="";
     $("#main").innerHTML=`<section class="card"><h2>Willkommen!</h2><p>Hier verwaltest du deinen D&D-Charakter. Alles wird auf diesem Gerät gespeichert.</p>
     <div class="btnrow"><button class="btn gold" data-act="new">Charakter erstellen</button><button class="btn" data-act="import">Aus Datei laden</button></div></section>`;return}
   if(!chars.find(c=>c.id===curId))curId=chars[0].id;
   const c=cur();renderTop();
-  const v={kampf:vKampf,werte:vWerte,zauber:vZauber,notizen:vNotizen,bearbeiten:vEdit}[tab];
+  const v={regeln:vRegeln,kampf:vKampf,werte:vWerte,zauber:vZauber,notizen:vNotizen,bearbeiten:vEdit}[tab];
   $("#main").innerHTML=v(c);
 }
 
@@ -575,7 +583,7 @@ document.addEventListener("click",e=>{
       update(x=>{x.hdUsed++;x.hp=Math.min(x.hpMax,x.hp+heal)});showRoll(heal,"Trefferwürfel","W"+k.hd+": "+r+"  KON "+sg(m),"Du heilst "+heal+" TP.");break}
     case "long":update(x=>{x.hp=x.hpMax;x.hpTemp=0;x.deathS=0;x.deathF=0;x.slotsUsed=[0,0,0,0,0,0,0,0,0];x.hdUsed=Math.max(0,x.hdUsed-Math.max(1,Math.floor(x.level/2)));x.mageArmor=false});
       showRoll("✓","Lange Rast","Volle TP und alle Zauberplätze zurück.");break;
-    case "addSpell":{const n=$("#spName").value.trim(),l=+$("#spLvl").value;if(!n)return;
+    case "addSpell":{const n=$("#spName").value.trim(),l=SP[n]?SP[n][0]:+$("#spLvl").value;if(!n)return;
       update(x=>{if(l===0)x.cantrips.push(n);else x.spells.push({name:n,level:l,prepared:false})});break}
     case "addAtk":update(x=>x.attacks.push({name:"Neue Waffe",kind:"waffe",abil:"str",die:"1W6",type:"Hieb",note:""}));break;
     case "hpSuggest":update(x=>{x.hpMax=hpSuggest(x);x.hp=x.hpMax});break;
@@ -681,18 +689,20 @@ const BG={
  "Unterhaltungskünstler":{d:"Du trittst vor Publikum auf.",sk:["akrobatik","auftreten"],tools:"Verkleidungsausrüstung, 1 Musikinstrument"},
  "Weiser":{d:"Du hast dein Leben dem Studium gewidmet.",sk:["arkane","geschichte"],lang:2}
 };
-const WSTEPS=["Name","Volk","Klasse","Attribute","Hintergrund","Fertigkeiten","Fertig"];
+const WSTEPS=["Name","Volk","Klasse","Attribute","Hintergrund","Fertigkeiten","Ausrüstung","Zauber","Fertig"];
 const WEXPL=["Wir bauen deinen Charakter Schritt für Schritt. Du musst nichts auswendig wissen: Die Seite zeigt dir nur, was erlaubt ist, und rechnet alles aus.",
  "Dein Volk ist die Abstammung deines Charakters. Es gibt Boni auf Attribute und angeborene Fähigkeiten. Es gibt keine falsche Wahl, nimm, was dir gefällt.",
  "Die Klasse ist dein Beruf als Abenteurer. Sie bestimmt, was du im Kampf und außerhalb kannst und wie viel du aushältst.",
  "Attribute beschreiben, wie stark, geschickt oder klug dein Charakter ist. Aus jedem Wert wird ein Modifikator (z. B. 14 → +2), den du später beim Würfeln addierst.",
  "Der Hintergrund ist, was dein Charakter vor dem Abenteuer gemacht hat. Er gibt dir zwei Fertigkeiten und Ideen, wie du die Figur spielst.",
  "Fertigkeiten sind Dinge, in denen dein Charakter geübt ist. Würfelst du darauf, bekommst du deinen Übungsbonus (+2) dazu.",
- "Fast geschafft! Prüf kurz alles. Ausrüstung, Angriffe und Zauber trägst du danach unter „Bearbeiten“ und „Zauber“ ein."];
+ "Deine Klasse gibt dir eine Startausrüstung. Bei manchen Sachen darfst du zwischen zwei Möglichkeiten wählen.",
+ "Such dir deine ersten Zauber aus. Unter jedem steht kurz, was er macht. Angriffszauber landen automatisch bei deinen Angriffen.",
+ "Fast geschafft! Prüf kurz alles. Alles lässt sich später unter „Bearbeiten“ ändern."];
 
 /* ---------- Assistent: Logik ---------- */
 let W=null;
-function wNew(){W={step:0,name:"",player:"",race:"",sub:"",cls:"",method:"standard",base:{str:"",dex:"",con:"",int:"",wis:"",cha:""},plus:[],bg:"",cSk:[],fSk:[],exp:[]};render();scrollTo(0,0)}
+function wNew(){W={step:0,name:"",player:"",race:"",sub:"",cls:"",method:"standard",base:{str:"",dex:"",con:"",int:"",wis:"",cha:""},plus:[],bg:"",cSk:[],fSk:[],exp:[],eq:[],cant:[],sp:[],hc:""};render();scrollTo(0,0)}
 const wR=()=>RACES[W.race],wS=()=>{const r=wR();return r&&r.subs?r.subs[W.sub]:null};
 const wBonus=a=>{const r=wR();return r?(r.ab[a]||0)+(((wS()||{}).ab||{})[a]||0)+(W.plus.includes(a)?1:0):0};
 const wScore=a=>(parseInt(W.base[a])||0)+wBonus(a);
@@ -715,6 +725,8 @@ function wOk(){
     case 5:if(W.cSk.length<wClassN())return "Wähle noch "+(wClassN()-W.cSk.length)+" Fertigkeit(en) deiner Klasse.";
       if(W.fSk.length<wFreeN())return "Wähle noch "+(wFreeN()-W.fSk.length)+" freie Fertigkeit(en).";
       if(W.cls==="Schurke"&&W.exp.length<2)return "Wähle noch "+(2-W.exp.length)+"× Expertise.";return "";
+    case 6:return EQ[W.cls].c.every((_,i)=>W.eq[i]!=null)?"":"Wähle bei jeder Frage eine Möglichkeit.";
+    case 7:{const n=wSpN();if(W.cant.length<n[0])return "Wähle noch "+(n[0]-W.cant.length)+" Zaubertrick(s).";if(W.sp.length<n[1])return "Wähle noch "+(n[1]-W.sp.length)+" Zauber.";if(W.sub==="Hochelf"&&!W.hc)return "Wähle deinen Hochelf-Zaubertrick.";return ""}
   }return "";
 }
 const card=(attr,key,on,title,text,small)=>`<button class="wcard ${on?"on":""}" ${attr}="${esc(key)}"><b>${esc(title)}</b><span>${esc(text)}</span>${small?`<small>${esc(small)}</small>`:""}</button>`;
@@ -749,10 +761,11 @@ const WV=[
    if(W.cls==="Schurke"){const pool=[...fx,...W.cSk,...W.fSk,"diebeswerkzeug"];
      h+=`<div class="card"><h2>Expertise (noch ${2-W.exp.length})</h2><p class="small muted">Wähle 2 Dinge, in denen du richtig gut bist: Dort zählt dein Übungsbonus doppelt.</p>${pool.map(s=>`<div class="skedit"><span>${s==="diebeswerkzeug"?"Diebeswerkzeug (Schlösser, Fallen)":SKN[s]}</span><span></span><button class="tog ${W.exp.includes(s)?"on":""}" data-wexp="${s}" ${W.exp.length>=2&&!W.exp.includes(s)?"disabled":""}>${W.exp.includes(s)?"gewählt":"wählen"}</button></div>`).join("")}</div>`}
    return h},
+ ()=>WV_EQ(),()=>WV_SP(),
  ()=>{const c=wBuild();return `<div class="card"><h2>${esc(c.name)}</h2><p class="muted" style="margin:0">Stufe 1 ${esc(c.cls)}, ${esc(c.race)}, ${esc(c.background)}</p>
    <div class="stats" style="margin-top:12px"><div class="stat"><b>${c.hpMax}</b><span>TP</span></div><div class="stat"><b>${acVal(c)}</b><span>RK</span></div><div class="stat"><b>${sg(mod(c.scores.dex))}</b><span>Initiative</span></div><div class="stat"><b style="font-size:22px;line-height:1.4">${esc(c.speed)}</b><span>Bewegung</span></div></div>
    <div class="grid3" style="margin-top:12px">${ABIL.map(([a,l])=>`<div class="stat"><b>${sg(mod(c.scores[a]))}</b><span>${l} ${c.scores[a]}</span></div>`).join("")}</div>
-   <p class="small" style="margin-top:12px"><b>Geübt in:</b> ${c.skills.map(s=>SKN[s]+(c.expertise.includes(s)?" (Expertise)":"")).join(", ")}</p></div>`}
+   <p class="small" style="margin-top:12px"><b>Angriffe:</b> ${c.attacks.map(a=>esc(a.name)).join(", ")||"keine"}${c.cantrips.length?`<br><b>Zaubertricks:</b> ${c.cantrips.map(esc).join(", ")}`:""}${c.spells.length?`<br><b>Zauber:</b> ${c.spells.filter(x=>x.prepared||W.cls!=="Druide"&&W.cls!=="Kleriker").map(x=>esc(x.name)).join(", ")}`:""}<br><b>Geübt in:</b> ${c.skills.map(s=>SKN[s]+(c.expertise.includes(s)?" (Expertise)":"")).join(", ")}</p></div>`}
 ];
 function wBuild(){
   const r=wR(),s=wS()||{},ci=CI[W.cls],b=BG[W.bg],c=blank();
@@ -763,28 +776,32 @@ function wBuild(){
   c.hpMax=c.hp=CLASSES[W.cls].hd+mod(c.scores.con)+c.hpLvlBonus;
   c.features=[...r.f,...(s.f||[]),...ci.f,...(W.exp.includes("diebeswerkzeug")?["Diebeswerkzeug mit Expertise: GES + doppelter Übungsbonus"]:[])].join("\n");
   c.languages=r.lang+(b.lang?`, ${b.lang} weitere nach Wahl (Hintergrund)`:"")+"\n\n"+ci.prof+(b.tools?"\nWerkzeug (Hintergrund): "+b.tools:"");
-  return c;
+  wAddEqSpells(c);return c;
 }
 function wRender(){
   const st=W.step,err=wOk();
   $("#hero").innerHTML=`<p class="small muted" style="margin:0">Schritt ${st+1} von ${WSTEPS.length}</p><div class="wprog"><i style="width:${(st+1)/WSTEPS.length*100}%"></i></div><h1>${WSTEPS[st]}</h1>`;
   $("#main").innerHTML=`<div class="hint">${WEXPL[st]}</div>`+WV[st]()+(err?`<p class="small muted" id="wErr" style="margin-top:14px">${err}</p>`:"");
-  $("#nav").innerHTML=`<div class="wnav"><button data-w="${st?"back":"cancel"}">${st?"Zurück":"Abbrechen"}</button>${st<6?`<button class="go" data-w="next" ${err?"disabled":""}>Weiter</button>`:`<button class="go" data-w="finish">Charakter erstellen</button>`}</div>`;
+  $("#nav").innerHTML=`<div class="wnav"><button data-w="${st?"back":"cancel"}">${st?"Zurück":"Abbrechen"}</button>${st<WSTEPS.length-1?`<button class="go" data-w="next" ${err?"disabled":""}>Weiter</button>`:`<button class="go" data-w="finish">Charakter erstellen</button>`}</div>`;
 }
 document.addEventListener("click",e=>{
   const t=e.target.closest("button");if(!t||!W)return;const D=t.dataset;
   if(D.w){const a=D.w;
-    if(a==="next"&&!wOk())W.step++;
-    if(a==="back")W.step--;
+    if(a==="next"&&!wOk()){W.step++;if(wSkip())W.step++}
+    if(a==="back"){W.step--;if(wSkip())W.step--}
     if(a==="cancel")W=null;
     if(a==="manual"){W=null;const c=blank();chars.push(c);curId=c.id;save(c);tab="bearbeiten"}
     if(a==="rec"){const order=CI[W.cls].rec;[15,14,13,12,10,8].forEach((v,i)=>W.base[order[i]]=String(v))}
     if(a==="finish"){const c=wBuild();chars.push(c);curId=c.id;save(c);W=null;tab="kampf";render();scrollTo(0,0);
-      return sheet("Willkommen, "+c.name+"!","Dein Charakter ist fertig. Trag jetzt unter „Bearbeiten“ deine Waffen als Angriffe ein und unter „Notizen“ deine Ausrüstung."+(isCaster(c)?" Deine Zauber kommen in den Tab „Zauber“.":""),[["Los geht’s"]])}
+      return sheet("Willkommen, "+c.name+"!","Dein Charakter ist fertig! Im Tab „Kampf“ findest du TP und Angriffe, unter „Werte“ deine Würfe"+(isCaster(c)?", unter „Zauber“ deine Zauber":"")+". Oben unter „Regeln“ steht, wie ein Spielzug abläuft.",[["Los geht’s"]])}
     render();if(a!=="rec")scrollTo(0,0);return}
-  if(D.wrace){if(W.race!==D.wrace){W.race=D.wrace;W.sub="";W.plus=[];W.cSk=[];W.fSk=[];W.exp=[]}render();return}
-  if(D.wsub){W.sub=D.wsub;render();return}
-  if(D.wcls){if(W.cls!==D.wcls){W.cls=D.wcls;W.cSk=[];W.exp=[]}render();return}
+  if(D.wrace){if(W.race!==D.wrace){W.race=D.wrace;W.sub="";W.hc="";W.plus=[];W.cSk=[];W.fSk=[];W.exp=[]}render();const h=$(".wh");if(h)h.scrollIntoView({behavior:"smooth",block:"start"});return}
+  if(D.wsub){W.sub=D.wsub;W.hc="";render();return}
+  if(D.weq){const[i,j]=D.weq.split(":").map(Number);W.eq[i]=j;render();return}
+  if(D.wcant){toggle(W.cant,D.wcant);if(W.hc===D.wcant)W.hc="";render();return}
+  if(D.wsp){toggle(W.sp,D.wsp);render();return}
+  if(D.whc){W.hc=W.hc===D.whc?"":D.whc;render();return}
+  if(D.wcls){if(W.cls!==D.wcls){W.cls=D.wcls;W.cSk=[];W.exp=[];W.eq=[];W.cant=[];W.sp=[]}render();return}
   if(D.wbg){if(W.bg!==D.wbg){W.bg=D.wbg;W.cSk=[];W.fSk=[];W.exp=[]}render();return}
   if(D.wmethod){if(W.method!==D.wmethod){W.method=D.wmethod;ABIL.forEach(([a])=>W.base[a]="")}render();return}
   if(D.wplus){toggle(W.plus,D.wplus);if(W.plus.length>2)W.plus.shift();render();return}
@@ -794,6 +811,128 @@ document.addEventListener("click",e=>{
 },true);
 document.addEventListener("change",e=>{if(W&&e.target.dataset.wbase){W.base[e.target.dataset.wbase]=e.target.value;render()}});
 document.addEventListener("input",e=>{if(W&&e.target.dataset.wtext){W[e.target.dataset.wtext]=e.target.value;const n=document.querySelector('[data-w="next"]'),er=wOk();if(n)n.disabled=!!er;const el=$("#wErr");if(el)el.textContent=er}});
+
+/* ---------- Etappe 2: Waffen, Ausrüstung, Zauber, Regeln ---------- */
+const WPN={"Dolch":["1W4","Stich","fin","werfbar 6 m"],"Kurzschwert":["1W6","Stich","fin"],"Rapier":["1W8","Stich","fin"],"Krummsäbel":["1W6","Hieb","fin"],
+ "Langschwert":["1W8","Hieb","str","zweihändig 1W10"],"Zweihandschwert":["2W6","Hieb","str","zweihändig"],"Zweihandaxt":["1W12","Hieb","str","zweihändig"],
+ "Handaxt":["1W6","Hieb","str","werfbar 6 m"],"Speer":["1W6","Stich","str","werfbar 6 m, zweihändig 1W8"],"Wurfspeer":["1W6","Stich","str","werfbar 9 m"],
+ "Kampfstab":["1W6","Wucht","str","zweihändig 1W8"],"Streitkolben":["1W6","Wucht","str"],"Kurzbogen":["1W6","Stich","dex","Reichweite 24 m"],
+ "Langbogen":["1W8","Stich","dex","Reichweite 45 m"],"Leichte Armbrust":["1W8","Stich","dex","Reichweite 24 m"],"Wurfpfeil":["1W4","Stich","fin","werfbar 6 m"],
+ "Waffenloser Schlag":["1W4","Wucht","fin","Bonusaktion: nochmal schlagen"]};
+const PACK={"Entdeckerausrüstung":"Rucksack, Schlafsack, Fackeln, Seil, Rationen, Wasserschlauch","Verliesausrüstung":"Rucksack, Brechstange, Hammer, Fackeln, Seil, Rationen",
+ "Gelehrtenausrüstung":"Rucksack, Bücher, Tinte, Feder, Pergament","Priesterausrüstung":"Rucksack, Decke, Kerzen, Weihrauch, Rationen",
+ "Diplomatenausrüstung":"Truhe, feine Kleidung, Tinte, Parfüm, Siegelwachs","Unterhaltungskünstlerausrüstung":"Rucksack, Kostüme, Kerzen, Verkleidungsausrüstung",
+ "Einbrecherausrüstung":"Rucksack, Kugellager, Glöckchen, Brechstange, Laterne, Seil","Komponentenbeutel":"Beutel mit Zutaten für deine Zauber","Arkaner Fokus":"Kristall oder Stab, ersetzt Zauberzutaten"};
+const o=(t,x={})=>({t,...x});
+const EQ={
+ "Barbar":{f:{w:["Wurfspeer"],it:["4 Wurfspeere","Entdeckerausrüstung"]},c:[[o("Zweihandaxt",{w:["Zweihandaxt"]}),o("Langschwert",{w:["Langschwert"]})],[o("2 Handäxte",{w:["Handaxt"]}),o("Speer",{w:["Speer"]})]]},
+ "Barde":{f:{a:"leder",w:["Dolch"],it:["Lederrüstung","Dolch","Musikinstrument"]},c:[[o("Rapier",{w:["Rapier"]}),o("Langschwert",{w:["Langschwert"]})],[o("Diplomatenausrüstung"),o("Unterhaltungskünstlerausrüstung")]]},
+ "Druide":{f:{a:"leder",it:["Lederrüstung","Entdeckerausrüstung","Druidenfokus"]},c:[[o("Holzschild",{sh:1}),o("Speer",{w:["Speer"]})],[o("Krummsäbel",{w:["Krummsäbel"]}),o("Kampfstab",{w:["Kampfstab"]})]]},
+ "Hexenmeister":{f:{a:"leder",w:["Dolch"],it:["Lederrüstung","2 Dolche"]},c:[[o("Leichte Armbrust + 20 Bolzen",{w:["Leichte Armbrust"]}),o("Speer",{w:["Speer"]})],[o("Komponentenbeutel"),o("Arkaner Fokus")],[o("Gelehrtenausrüstung"),o("Verliesausrüstung")]]},
+ "Kämpfer":{f:{},c:[[o("Kettenpanzer",{a:"ketten",d:"Schwere Rüstung, RK 16. Ab STÄ 13 ohne Einschränkung."}),o("Lederrüstung + Langbogen + 20 Pfeile",{a:"leder",w:["Langbogen"],d:"Für Kämpfer mit hoher Geschicklichkeit."})],[o("Langschwert + Schild",{w:["Langschwert"],sh:1}),o("Zweihandschwert",{w:["Zweihandschwert"]})],[o("Leichte Armbrust + 20 Bolzen",{w:["Leichte Armbrust"]}),o("2 Handäxte",{w:["Handaxt"]})],[o("Verliesausrüstung"),o("Entdeckerausrüstung")]]},
+ "Kleriker":{f:{w:["Streitkolben"],sh:1,it:["Streitkolben","Schild","Heiliges Symbol"]},c:[[o("Schuppenpanzer",{a:"schuppen",d:"Mittelschwer, RK 14 + GES (max. +2)."}),o("Lederrüstung",{a:"leder",d:"Leicht, RK 11 + GES."})],[o("Leichte Armbrust + 20 Bolzen",{w:["Leichte Armbrust"]}),o("Speer",{w:["Speer"]})],[o("Priesterausrüstung"),o("Entdeckerausrüstung")]]},
+ "Magier":{f:{it:["Zauberbuch"]},c:[[o("Kampfstab",{w:["Kampfstab"]}),o("Dolch",{w:["Dolch"]})],[o("Komponentenbeutel"),o("Arkaner Fokus")],[o("Gelehrtenausrüstung"),o("Entdeckerausrüstung")]]},
+ "Mönch":{f:{w:["Waffenloser Schlag","Wurfpfeil"],it:["10 Wurfpfeile"]},c:[[o("Kurzschwert",{w:["Kurzschwert"]}),o("Speer",{w:["Speer"]})],[o("Verliesausrüstung"),o("Entdeckerausrüstung")]]},
+ "Paladin":{f:{a:"ketten",it:["Kettenpanzer","Heiliges Symbol"]},c:[[o("Langschwert + Schild",{w:["Langschwert"],sh:1}),o("Zweihandschwert",{w:["Zweihandschwert"]})],[o("5 Wurfspeere",{w:["Wurfspeer"]}),o("Streitkolben",{w:["Streitkolben"]})],[o("Priesterausrüstung"),o("Entdeckerausrüstung")]]},
+ "Schurke":{f:{a:"leder",w:["Dolch"],it:["Lederrüstung","2 Dolche","Diebeswerkzeug"]},c:[[o("Rapier",{w:["Rapier"]}),o("Kurzschwert",{w:["Kurzschwert"]})],[o("Kurzbogen + 20 Pfeile",{w:["Kurzbogen"]}),o("Kurzschwert",{w:["Kurzschwert"]})],[o("Einbrecherausrüstung"),o("Verliesausrüstung"),o("Entdeckerausrüstung")]]},
+ "Waldläufer":{f:{w:["Langbogen"],it:["Langbogen + 20 Pfeile","Entdeckerausrüstung"]},c:[[o("Schuppenpanzer",{a:"schuppen",d:"Mittelschwer, RK 14 + GES (max. +2)."}),o("Lederrüstung",{a:"leder",d:"Leicht, RK 11 + GES. Besser bei hoher Geschicklichkeit."})],[o("2 Kurzschwerter",{w:["Kurzschwert"]}),o("Speer",{w:["Speer"]})]]},
+ "Zauberer":{f:{w:["Dolch"],it:["2 Dolche","Entdeckerausrüstung"]},c:[[o("Leichte Armbrust + 20 Bolzen",{w:["Leichte Armbrust"]}),o("Kampfstab",{w:["Kampfstab"]})],[o("Komponentenbeutel"),o("Arkaner Fokus")]]}
+};
+const SP={
+ "Ausbessern":[0,"Repariert einen kleinen Riss oder Bruch in einem Gegenstand."],"Botschaft":[0,"Flüstere einer Kreatur in 36 m eine Nachricht zu, sie kann leise antworten."],
+ "Druidenkunst":[0,"Kleine Naturtricks: Wetter vorhersagen, Blüten öffnen, harmlose Sinneseffekte."],"Dornenpeitsche":[0,"Ranke peitscht ein Ziel in 9 m und zieht es 3 m zu dir.",["zauber","1W6","Stich"]],
+ "Feuerpfeil":[0,"Feuerstrahl auf ein Ziel in 36 m.",["zauber","1W10","Feuer"]],"Flammen erzeugen":[0,"Flamme in der Hand als Licht, oder 9 m weit werfen.",["zauber","1W8","Feuer"]],
+ "Freundschaft":[0,"1 Minute Vorteil auf CHA-Würfe gegen eine Kreatur, die es danach merkt."],"Führung":[0,"Berührte Kreatur addiert 1W4 auf einen Attributswurf (Konzentration)."],
+ "Gehässiger Spott":[0,"Magische Beleidigung, WEI-Rettungswurf, bei Misserfolg Nachteil beim nächsten Angriff.",["rettung","1W4","psychisch","wis"]],
+ "Giftspritzer":[0,"Giftwolke auf ein Ziel in 3 m, KON-Rettungswurf.",["rettung","1W12","Gift","con"]],"Heilige Flamme":[0,"Gleißendes Licht auf ein Ziel in 18 m, GES-Rettungswurf, Deckung hilft nicht.",["rettung","1W8","gleißend","dex"]],
+ "Kältegriff":[0,"Geisterhand greift ein Ziel in 36 m an, es kann bis zu deinem nächsten Zug nicht geheilt werden.",["zauber","1W8","nekrotisch"]],
+ "Kältestrahl":[0,"Eisstrahl auf ein Ziel in 18 m, es verliert 3 m Bewegung.",["zauber","1W8","Kälte"]],"Kleine Illusion":[0,"Ein Geräusch oder ein kleines Trugbild für 1 Minute."],
+ "Klingenbann":[0,"Resistenz gegen Waffenschaden bis zu deinem nächsten Zug."],"Licht":[0,"Ein Gegenstand leuchtet 1 Stunde lang wie eine Fackel."],
+ "Magierhand":[0,"Schwebende Geisterhand bewegt kleine Dinge in 9 m (bis 5 kg)."],"Säurespritzer":[0,"Säureblase auf 1–2 nebeneinanderstehende Ziele in 18 m, GES-Rettungswurf.",["rettung","1W6","Säure","dex"]],
+ "Schauriger Strahl":[0,"Energiestrahl auf ein Ziel in 36 m. Der Standardangriff des Hexenmeisters.",["zauber","1W10","Energie"]],
+ "Schockgriff":[0,"Blitz per Berührung, Vorteil gegen Metallrüstung, Ziel verliert seine Reaktion.",["zauber","1W8","Blitz"]],
+ "Shillelagh":[0,"Knüppel oder Kampfstab macht 1W8 und nutzt WEI statt STÄ (Bonusaktion, 1 Minute)."],"Taschenspielerei":[0,"Kleine Tricks: säubern, würzen, Funken, kleine Symbole."],
+ "Tanzende Lichter":[0,"Bis zu 4 schwebende Lichter, die du bewegen kannst (Konzentration)."],"Thaumaturgie":[0,"Kleine Wunderzeichen: donnernde Stimme, flackernde Flammen, Beben."],
+ "Verschonung der Sterbenden":[0,"Stabilisiert eine Kreatur mit 0 TP per Berührung."],"Wahrer Schlag":[0,"Vorteil auf deinen nächsten Angriff gegen ein Ziel (Konzentration)."],
+ "Widerstand":[0,"Berührte Kreatur addiert 1W4 auf einen Rettungswurf (Konzentration)."],
+ "Arme von Hadar":[1,"Tentakel um dich (3 m), STÄ-Rettungswurf, Getroffene verlieren ihre Reaktion.",["rettung","2W6","nekrotisch","str"]],
+ "Befehl":[1,"Ein Wort als Befehl, z. B. „Flieh!“ oder „Hinlegen!“, WEI-Rettungswurf."],"Brennende Hände":[1,"Flammenkegel 4,5 m, GES-Rettungswurf, halber Schaden bei Erfolg.",["rettung","3W6","Feuer","dex"]],
+ "Chromatische Kugel":[1,"Energiekugel deiner Wahl (Feuer, Kälte, Blitz …) auf ein Ziel in 27 m.",["zauber","3W8","wählbar"]],
+ "Donnerwoge":[1,"Donnerwelle (4,5-m-Würfel), KON-Rettungswurf, stößt Ziele 3 m weg.",["rettung","2W8","Schall","con"]],
+ "Farbenspiel":[1,"Grelle Farben blenden Kreaturen mit zusammen 6W10 TP für eine Runde."],"Feenfeuer":[1,"Umrandet Kreaturen mit Licht, Angriffe gegen sie haben Vorteil (Konzentration)."],
+ "Federfall":[1,"Reaktion: bis zu 5 Fallende sinken sanft zu Boden."],"Gute Beeren":[1,"10 Beeren, jede heilt 1 TP und ersetzt eine Mahlzeit."],
+ "Heilendes Wort":[1,"Bonusaktion: heilt ein Ziel in 18 m.",["auto","1W4+MOD","Heilung"]],"Heiligtum":[1,"Gegner müssen einen WEI-Rettungswurf schaffen, um das Ziel anzugreifen."],
+ "Heldenmut":[1,"Ziel ist furchtlos und bekommt jede Runde temporäre TP (Konzentration)."],"Hexenblitz":[1,"Blitzstrahl, in Folgerunden als Aktion weitere 1W12 (Konzentration).",["zauber","1W12","Blitz"]],
+ "Höllischer Tadel":[1,"Reaktion, wenn du Schaden nimmst: Flammen um den Angreifer, GES-Rettungswurf.",["rettung","2W10","Feuer","dex"]],
+ "Identifizieren":[1,"Zeigt die magischen Eigenschaften eines Gegenstands (Ritual)."],"Lenkendes Geschoss":[1,"Lichtblitz auf ein Ziel in 36 m, der nächste Angriff gegen es hat Vorteil.",["zauber","4W6","gleißend"]],
+ "Magie entdecken":[1,"Du spürst Magie im Umkreis von 9 m (Ritual, Konzentration)."],"Magierrüstung":[1,"8 Stunden RK 13 + GES, wenn du keine Rüstung trägst."],
+ "Magisches Geschoss":[1,"3 Geschosse, jedes trifft garantiert für 1W4+1.",["auto","3W4+3","Energie"]],"Nebelwolke":[1,"Dichter Nebel (6 m Radius) nimmt allen die Sicht (Konzentration)."],
+ "Person bezaubern":[1,"Ein Humanoide hält dich 1 Stunde für einen Freund, WEI-Rettungswurf."],"Schild":[1,"Reaktion, wenn du getroffen wirst: +5 RK bis zu deinem nächsten Zug."],
+ "Schild des Glaubens":[1,"+2 RK für ein Ziel, 10 Minuten (Konzentration)."],"Schlaf":[1,"Kreaturen mit zusammen 5W8 TP schlafen ein, die schwächsten zuerst."],
+ "Schneller Rückzug":[1,"Jede Runde Spurt als Bonusaktion (Konzentration)."],"Schutz vor Gut und Böse":[1,"Schützt ein Ziel vor Untoten, Feen, Dämonen usw. (Konzentration)."],
+ "Segnen":[1,"Bis zu 3 Kreaturen addieren 1W4 auf Angriffe und Rettungswürfe (Konzentration)."],"Selbstverkleidung":[1,"Du veränderst dein Aussehen für 1 Stunde."],
+ "Sprachen verstehen":[1,"1 Stunde lang jede Sprache verstehen und lesen (Ritual)."],"Sprung":[1,"Sprungweite eines Ziels verdreifacht sich für 1 Minute."],
+ "Tashas fürchterliches Gelächter":[1,"Ziel fällt lachend um und kann nicht handeln, WEI-Rettungswurf (Konzentration)."],"Tierfreundschaft":[1,"Ein Tier hält dich für freundlich, WEI-Rettungswurf."],
+ "Unsichtbarer Diener":[1,"Unsichtbare Kraft erledigt 1 Stunde einfache Aufgaben (Ritual)."],"Verhexen":[1,"Bonusaktion: Ziel nimmt bei deinen Treffern +1W6 nekrotisch (Konzentration)."],
+ "Verstricken":[1,"Ranken halten Kreaturen in einem 6-m-Quadrat fest, STÄ-Rettungswurf (Konzentration)."],"Vertrauten finden":[1,"Ein Geistertier (z. B. Eule, Katze) wird dein Begleiter (Ritual)."],
+ "Wunden heilen":[1,"Heilt eine berührte Kreatur.",["auto","1W8+MOD","Heilung"]],"Wunden verursachen":[1,"Nekrotische Berührung mit hohem Schaden.",["zauber","3W10","nekrotisch"]]
+};
+const MAGC=["Ausbessern","Botschaft","Feuerpfeil","Freundschaft","Giftspritzer","Kältegriff","Kältestrahl","Kleine Illusion","Klingenbann","Licht","Magierhand","Säurespritzer","Schockgriff","Tanzende Lichter","Taschenspielerei","Wahrer Schlag"];
+const CL={
+ "Barde":[["Ausbessern","Botschaft","Freundschaft","Gehässiger Spott","Kleine Illusion","Klingenbann","Licht","Magierhand","Tanzende Lichter","Taschenspielerei","Wahrer Schlag"],["Donnerwoge","Feenfeuer","Federfall","Heilendes Wort","Heldenmut","Identifizieren","Magie entdecken","Person bezaubern","Schlaf","Selbstverkleidung","Sprachen verstehen","Tashas fürchterliches Gelächter","Tierfreundschaft","Unsichtbarer Diener","Wunden heilen"]],
+ "Druide":[["Ausbessern","Dornenpeitsche","Druidenkunst","Flammen erzeugen","Führung","Giftspritzer","Shillelagh","Widerstand"],["Donnerwoge","Feenfeuer","Gute Beeren","Heilendes Wort","Magie entdecken","Nebelwolke","Sprung","Tierfreundschaft","Verstricken","Wunden heilen"]],
+ "Hexenmeister":[["Freundschaft","Giftspritzer","Kältegriff","Kleine Illusion","Klingenbann","Magierhand","Schauriger Strahl","Taschenspielerei","Wahrer Schlag"],["Arme von Hadar","Höllischer Tadel","Person bezaubern","Schneller Rückzug","Schutz vor Gut und Böse","Sprachen verstehen","Unsichtbarer Diener","Verhexen"]],
+ "Kleriker":[["Ausbessern","Führung","Heilige Flamme","Licht","Thaumaturgie","Verschonung der Sterbenden","Widerstand"],["Befehl","Heiligtum","Heilendes Wort","Lenkendes Geschoss","Magie entdecken","Schild des Glaubens","Schutz vor Gut und Böse","Segnen","Wunden heilen","Wunden verursachen"]],
+ "Magier":[MAGC,["Brennende Hände","Chromatische Kugel","Donnerwoge","Farbenspiel","Federfall","Hexenblitz","Identifizieren","Magie entdecken","Magierrüstung","Magisches Geschoss","Nebelwolke","Person bezaubern","Schild","Schlaf","Schneller Rückzug","Schutz vor Gut und Böse","Selbstverkleidung","Sprachen verstehen","Sprung","Tashas fürchterliches Gelächter","Unsichtbarer Diener","Vertrauten finden"]],
+ "Zauberer":[MAGC,["Brennende Hände","Chromatische Kugel","Donnerwoge","Farbenspiel","Federfall","Hexenblitz","Magie entdecken","Magierrüstung","Magisches Geschoss","Nebelwolke","Person bezaubern","Schild","Schlaf","Schneller Rückzug","Selbstverkleidung","Sprachen verstehen","Sprung"]]
+};
+const SPC={"Barde":[2,4],"Druide":[2,"prep"],"Hexenmeister":[2,2],"Kleriker":[3,"prep"],"Magier":[3,6],"Zauberer":[4,2]};
+const RACECANT={"Dunkelelf":"Tanzende Lichter","Tiefling":"Thaumaturgie","Waldgnom":"Kleine Illusion"};
+const wSpN=()=>{const s=SPC[W.cls];if(!s)return[0,0];return[s[0],s[1]==="prep"?Math.max(1,mod(wScore("wis"))+1):s[1]]};
+const wSkip=()=>W.step===7&&!SPC[W.cls]&&W.sub!=="Hochelf";
+const eqDesc=x=>[x.d,...(x.w||[]).map(w=>`${w}: ${WPN[w][0]} ${WPN[w][1]}${WPN[w][3]?", "+WPN[w][3]:""}`),x.sh?"Schild: +2 RK":"",PACK[x.t]].filter(Boolean).join(". ")||"";
+const spTog=(attr,x,on,dis)=>`<div class="skedit"><span>${esc(x)}<small class="muted" style="display:block;font-size:13px">${esc(SP[x][1])}</small></span><span></span><button class="tog ${on?"on":""}" ${attr}="${esc(x)}" ${dis&&!on?"disabled":""}>${on?"gewählt":"wählen"}</button></div>`;
+const WV_EQ=()=>{const e=EQ[W.cls];let h="";
+  e.c.forEach((opts,i)=>{h+=`<h2 class="wh">Wähle eins (${i+1} von ${e.c.length})</h2><div class="wcards">${opts.map((x,j)=>card("data-weq",i+":"+j,W.eq[i]===j,x.t,eqDesc(x)||"Ausrüstung","")).join("")}</div>`});
+  if((e.f.it||[]).length)h+=`<div class="hint"><b>Außerdem bekommst du:</b>${ul(e.f.it)}</div>`;
+  return h+`<p class="small muted">Dazu kommt noch die Ausrüstung deines Hintergrunds, die steht im Buch. Waffen werden automatisch als Angriffe eingetragen.</p>`};
+const WV_SP=()=>{const s=SPC[W.cls],n=wSpN();let h="";
+  if(s){const L=CL[W.cls],prep=s[1]==="prep";
+    h+=`<div class="card"><h2>Zaubertricks (noch ${n[0]-W.cant.length})</h2><p class="small muted">Kosten keinen Zauberplatz, du kannst sie beliebig oft wirken.</p>${L[0].map(x=>spTog("data-wcant",x,W.cant.includes(x),W.cant.length>=n[0])).join("")}</div>`;
+    h+=`<div class="card"><h2>${prep?"Für heute vorbereiten":"Zauber des 1. Grades"} (noch ${n[1]-W.sp.length})</h2><p class="small muted">${prep?"Du kennst alle Zauber deiner Liste. Nach jeder langen Rast wählst du neu, welche du vorbereitest. Hier für den ersten Tag.":W.cls==="Magier"?"Diese 6 stehen in deinem Zauberbuch. Wie viele du davon täglich vorbereiten darfst, siehst du später im Zauber-Tab.":"Diese Zauber kennst du fest."} Pro Wirken brauchst du einen Zauberplatz (Stufe 1: 2 Plätze).</p>${L[1].map(x=>spTog("data-wsp",x,W.sp.includes(x),W.sp.length>=n[1])).join("")}</div>`}
+  if(W.sub==="Hochelf")h+=`<div class="card"><h2>Hochelf-Zaubertrick</h2><p class="small muted">Als Hochelf kannst du einen Zaubertrick von der Magier-Liste, gewirkt mit Intelligenz.</p>${MAGC.filter(x=>!W.cant.includes(x)).map(x=>spTog("data-whc",x,W.hc===x,!!W.hc)).join("")}</div>`;
+  return h};
+function wAddEqSpells(c){
+  const e=EQ[W.cls],opts=e.c.map((x,i)=>x[W.eq[i]]).filter(Boolean),all=[e.f,...opts];
+  all.forEach(x=>{if(x.a&&c.armor==="none")c.armor=x.a;if(x.sh)c.shield=true});
+  c.equipment=[...(e.f.it||[]),...opts.map(x=>x.t)].join("\n");
+  const ws=[...new Set(all.flatMap(x=>x.w||[]))];
+  c.attacks=ws.map(w=>({name:w,kind:"waffe",abil:WPN[w][2],die:WPN[w][0],type:WPN[w][1],note:WPN[w][3]||""}));
+  const cm=cls(c).cast?mod(c.scores[cls(c).cast]):0,s=SPC[W.cls];
+  c.cantrips=[...new Set([...W.cant,W.hc,RACECANT[W.sub]||RACECANT[W.race]].filter(Boolean))];
+  if(s){const prep=s[1]==="prep",list=prep?CL[W.cls][1]:W.sp;
+    c.spells=list.map(n=>({name:n,level:1,prepared:W.sp.includes(n)}));
+    if(W.cls==="Magier"){const pm=prepMax(c);c.spells.forEach((x,i)=>x.prepared=i<pm)}}
+  [...c.cantrips,...W.sp].forEach(n=>{const a=SP[n]&&SP[n][2];if(a)c.attacks.push({name:n,kind:a[0],die:a[1].replace("MOD",cm),type:a[2],save:a[3]||"dex",note:""})});
+}
+const RULES=[
+ ["Wie läuft ein Spiel ab?","Der Spielleiter (SL) beschreibt, was passiert. Ihr sagt, was eure Charaktere tun. Ist unklar, ob etwas klappt, sagt der SL, worauf ihr würfeln sollt. Es gibt kein Gewinnen: Ihr erzählt gemeinsam eine Geschichte."],
+ ["Der W20-Wurf","Fast alles funktioniert gleich: W20 würfeln + passender Modifikator. Erreichst du den Schwierigkeitsgrad (SG), klappt es. Typisch: SG 10 leicht, 15 mittel, 20 schwer. Bei Angriffen ist der SG die Rüstungsklasse (RK) des Ziels."],
+ ["Vorteil und Nachteil","Vorteil: zwei W20, der höhere zählt. Nachteil: zwei W20, der niedrigere zählt. Hast du beides gleichzeitig, heben sie sich auf. Stell es im Kampf- oder Werte-Tab oben um."],
+ ["Dein Zug im Kampf","Zuerst würfeln alle Initiative, das bestimmt die Reihenfolge. In deinem Zug hast du:<ul class=\"tr\"><li><b>Bewegung</b> bis zu deiner Bewegungsrate, auch aufgeteilt</li><li><b>Eine Aktion</b>, z. B. Angreifen oder Zaubern</li><li><b>Eine Bonusaktion</b>, nur wenn eine Fähigkeit es erlaubt</li><li><b>Eine Reaktion</b> pro Runde, auch im Zug anderer (z. B. Gelegenheitsangriff, Zauber Schild)</li><li>Nebenbei kannst du einen Gegenstand benutzen oder kurz reden</li></ul>"],
+ ["Welche Aktionen gibt es?","<ul class=\"tr\"><li><b>Angreifen:</b> ein Waffenangriff</li><li><b>Zauber wirken</b></li><li><b>Spurt:</b> noch einmal deine Bewegung</li><li><b>Rückzug:</b> Bewegung ohne Gelegenheitsangriffe</li><li><b>Ausweichen:</b> Angriffe gegen dich haben Nachteil</li><li><b>Helfen:</b> ein Verbündeter bekommt Vorteil</li><li><b>Verstecken:</b> Wurf auf Heimlichkeit</li><li><b>Vorbereiten:</b> „Wenn der Ork durch die Tür kommt, schieße ich“</li></ul>"],
+ ["Angreifen und Schaden","W20 + Angriffsbonus gegen die RK des Ziels. Bei Treffer würfelst du Schaden. Eine natürliche 20 ist ein kritischer Treffer: Schadenswürfel doppelt würfeln. Eine natürliche 1 verfehlt immer."],
+ ["Gelegenheitsangriff","Verlässt ein Gegner deine Reichweite (meist 1,5 m), darfst du ihn mit deiner Reaktion einmal angreifen. Das gilt auch umgekehrt! Mit der Aktion Rückzug vermeidest du das."],
+ ["Deckung","Steht etwas zwischen dir und dem Angreifer: halbe Deckung +2 RK, Dreivierteldeckung +5 RK, volle Deckung: du kannst nicht direkt getroffen werden."],
+ ["0 Trefferpunkte","Bei 0 TP bist du bewusstlos. In jedem Zug machst du einen Todesrettungswurf (W20): ab 10 Erfolg, darunter Misserfolg. 3 Erfolge: stabil. 3 Misserfolge: tot. Jede Heilung weckt dich sofort wieder auf. Wirst du bei 0 TP getroffen, zählt das als Misserfolg."],
+ ["Rasten","<b>Kurze Rast</b> (1 Stunde): Trefferwürfel ausgeben und heilen, manche Fähigkeiten laden auf. <b>Lange Rast</b> (8 Stunden, höchstens 1 pro Tag): volle TP, alle Zauberplätze und die Hälfte der Trefferwürfel zurück."],
+ ["Zauber","<ul class=\"tr\"><li><b>Zaubertricks</b> kosten nichts</li><li><b>Zauber ab Grad 1</b> verbrauchen einen Zauberplatz</li><li><b>Konzentration:</b> Du kannst nur einen solchen Zauber gleichzeitig halten. Nimmst du Schaden, KON-Rettungswurf (SG 10 oder halber Schaden), sonst endet er</li><li><b>Ritual:</b> Dauert 10 Minuten länger, kostet aber keinen Platz</li><li><b>Komponenten:</b> V = sprechen, G = Gesten, M = Material (Fokus oder Komponentenbeutel reicht meist)</li></ul>"],
+ ["Wichtige Zustände","<ul class=\"tr\"><li><b>Liegend:</b> Nahkampfangriffe gegen dich mit Vorteil, Fernkampf mit Nachteil. Aufstehen kostet halbe Bewegung</li><li><b>Vergiftet:</b> Nachteil auf Angriffe und Attributswürfe</li><li><b>Verängstigt:</b> Nachteil, solange du die Quelle siehst, du darfst nicht näher ran</li><li><b>Bezaubert:</b> Du greifst den Bezauberer nicht an</li><li><b>Gepackt:</b> Bewegung 0</li><li><b>Blind:</b> Deine Angriffe mit Nachteil, gegen dich mit Vorteil</li><li><b>Unsichtbar:</b> Deine Angriffe mit Vorteil, gegen dich mit Nachteil</li></ul>"],
+ ["Inspiration","Der SL vergibt sie für gutes Rollenspiel. Du kannst sie ausgeben, um bei einem Wurf Vorteil zu bekommen. Mehr als eine gleichzeitig geht nicht."],
+ ["Stufenaufstieg","Der SL sagt euch, wann ihr aufsteigt. Dann tippst du unter deinem Namen auf „Stufe aufsteigen“. Neue Fähigkeiten und Zauber stehen im Buch bei deiner Klasse, trag sie unter Notizen oder Zauber ein."],
+ ["Abkürzungen","SL = Spielleiter, SG = Schwierigkeitsgrad, RK = Rüstungsklasse, TP = Trefferpunkte, EP = Erfahrungspunkte, W6 = sechsseitiger Würfel (2W6 = zwei davon zusammenzählen), STÄ/GES/KON/INT/WEI/CHA = die sechs Attribute."]
+];
+function vRegeln(){return `<section class="card"><h2>Regeln kurz erklärt</h2><p class="small muted">Das Wichtigste für den Spieltisch. Tippe ein Thema an.</p>${RULES.map(([t,x])=>`<details><summary>${t}</summary><div>${x}</div></details>`).join("")}</section>`}
 
 /* ---------- Start ---------- */
 loadLocal();chars=chars.map(normalize);render();
