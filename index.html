@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Heldenbogen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Alegreya:wght@500;700;800&family=Alegreya+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EEF0EA; --surface:#FFFFFF; --surface2:#F5F6F1; --ink:#1F2A2E; --muted:#5B686B;
+  --line:#D6DAD1; --gold:#95600A; --gold-soft:#F4E6C6; --teal:#2A7368; --teal-soft:#DCEDE9; --red:#B3372F; --red-soft:#F6DEDB;
+  --serif:"Alegreya", Georgia, "Times New Roman", serif;
+  --sans:"Alegreya Sans", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#1B2225; --surface:#243034; --surface2:#2B373C; --ink:#EDE8DC; --muted:#9BA7A7;
+    --line:#39474C; --gold:#E3B252; --gold-soft:#3E3423; --teal:#72B8AC; --teal-soft:#23403B; --red:#E57B70; --red-soft:#4A2B28;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#1B2225; --surface:#243034; --surface2:#2B373C; --ink:#EDE8DC; --muted:#9BA7A7;
+  --line:#39474C; --gold:#E3B252; --gold-soft:#3E3423; --teal:#72B8AC; --teal-soft:#23403B; --red:#E57B70; --red-soft:#4A2B28;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:17px;line-height:1.45;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.wrap{max-width:720px;margin:0 auto;padding:12px 16px 120px}
+
+/* Kopf */
+.top{display:flex;gap:8px;align-items:center;margin-bottom:6px}
+.top select{flex:1;min-width:0;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+.iconbtn{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 12px;white-space:nowrap}
+.hero{padding:14px 2px 10px}
+.hero h1{font-family:var(--serif);font-weight:800;font-size:clamp(30px,8vw,44px);line-height:1.05;margin:0;letter-spacing:.2px;overflow-wrap:anywhere}
+.hero p{margin:4px 0 0;color:var(--muted)}
+.sync{font-size:13px;color:var(--muted);margin-top:2px}
+
+/* Karten */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;margin:12px 0}
+.card h2{font-family:var(--serif);font-size:21px;font-weight:700;margin:0 0 8px;display:flex;align-items:center;gap:8px}
+.help{border:1px solid var(--line);background:var(--surface2);border-radius:50%;width:24px;height:24px;font-size:14px;line-height:1;padding:0;color:var(--muted);flex:none;font-family:var(--sans)}
+.muted{color:var(--muted)}
+.small{font-size:14px}
+
+/* Kennzahlen */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:8px 4px 6px;text-align:center;position:relative}
+.stat b{display:block;font-family:var(--serif);font-size:28px;line-height:1.1}
+.stat span{font-size:13px;color:var(--muted)}
+.stat button.help{position:absolute;top:4px;right:4px;width:20px;height:20px;font-size:12px}
+button.stat{font:inherit;color:inherit}
+
+/* TP */
+.hp{display:flex;align-items:baseline;gap:6px;font-family:var(--serif)}
+.hp .cur{font-size:56px;font-weight:800;line-height:1}
+.hp .max{font-size:24px;color:var(--muted)}
+.hp .tmp{font-family:var(--sans);font-size:15px;color:var(--teal);margin-left:auto}
+.hpbar{height:8px;background:var(--surface2);border-radius:6px;overflow:hidden;margin:10px 0 12px;border:1px solid var(--line)}
+.hpbar i{display:block;height:100%;background:var(--teal);transition:width .3s}
+.hpbar.low i{background:var(--red)}
+.hprow{display:grid;grid-template-columns:1fr auto auto;gap:8px}
+.hprow input{width:100%;min-width:0;background:var(--surface2);border:1px solid var(--line);border-radius:10px;padding:10px;text-align:center;font-size:20px}
+.btn{border:1px solid var(--line);background:var(--surface2);border-radius:10px;padding:10px 14px;font-weight:500}
+.btn.dmg{background:var(--red-soft);border-color:transparent;color:var(--red);font-weight:700}
+.btn.heal{background:var(--teal-soft);border-color:transparent;color:var(--teal);font-weight:700}
+.btn.gold{background:var(--gold-soft);border-color:transparent;color:var(--gold);font-weight:700}
+.btnrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:999px;padding:6px 12px;background:var(--surface2);font-size:15px}
+.chip.on{background:var(--gold-soft);border-color:var(--gold);color:var(--gold);font-weight:700}
+
+/* Todesrettungen */
+.death{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;align-items:center;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
+.pips{display:flex;gap:8px}
+.pip{width:26px;height:26px;border-radius:50%;border:2px solid var(--line);background:transparent;padding:0}
+.pip.s.on{background:var(--teal);border-color:var(--teal)}
+.pip.f.on{background:var(--red);border-color:var(--red)}
+
+/* Listen */
+.list{display:flex;flex-direction:column}
+.row{display:flex;align-items:center;gap:10px;padding:9px 2px;border-bottom:1px solid var(--line);background:none;border-left:0;border-right:0;border-top:0;text-align:left;width:100%}
+.row:last-child{border-bottom:0}
+.row .name{flex:1;min-width:0}
+.row .name small{display:block;color:var(--muted);font-size:13px}
+.row .val{font-family:var(--serif);font-weight:700;font-size:21px;min-width:44px;text-align:right}
+.dot{width:12px;height:12px;border-radius:50%;border:2px solid var(--line);flex:none}
+.dot.p{background:var(--teal);border-color:var(--teal)}
+.dot.e{background:var(--gold);border-color:var(--gold);box-shadow:0 0 0 3px var(--gold-soft)}
+
+/* Attribute */
+.abils{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.abil{background:var(--surface);border:1px solid var(--line);border-radius:18px 18px 40px 40px;padding:10px 4px 12px;text-align:center}
+.abil .lbl{font-size:14px;color:var(--muted)}
+.abil .m{font-family:var(--serif);font-size:34px;font-weight:800;line-height:1.1}
+.abil .s{display:inline-block;margin-top:2px;border:1px solid var(--line);border-radius:999px;padding:0 10px;font-size:15px;background:var(--surface2)}
+
+/* Angriffe */
+.atk{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line)}
+.atk:last-child{border-bottom:0}
+.atk .n{min-width:0}
+.atk .n small{display:block;color:var(--muted);font-size:13px}
+.pill{border:1px solid var(--line);background:var(--surface2);border-radius:10px;padding:8px 10px;font-weight:700;min-width:64px;text-align:center}
+.pill.hit{background:var(--gold-soft);color:var(--gold);border-color:transparent}
+
+/* Zauber */
+.slotrow{display:flex;align-items:center;gap:12px;padding:6px 0}
+.slotrow .g{width:62px;font-weight:700}
+.slot{width:28px;height:28px;border-radius:7px;transform:rotate(45deg);border:2px solid var(--gold);background:var(--gold);padding:0;margin:2px 4px}
+.slot.used{background:transparent;border-color:var(--line)}
+.spell{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
+.spell:last-child{border-bottom:0}
+.spell .n{flex:1}
+.spell .x{border:0;background:none;color:var(--muted);font-size:20px;padding:2px 8px}
+.tog{border:1px solid var(--line);border-radius:999px;padding:4px 10px;background:var(--surface2);font-size:14px}
+.tog.on{background:var(--teal-soft);color:var(--teal);border-color:transparent;font-weight:700}
+.grade{font-family:var(--serif);font-size:17px;font-weight:700;margin:12px 0 2px;color:var(--muted)}
+.addrow{display:grid;grid-template-columns:1fr auto auto;gap:8px;margin-top:12px}
+
+/* Formulare */
+label.f{display:block;margin:10px 0}
+label.f span{display:block;font-size:14px;color:var(--muted);margin-bottom:4px}
+.in{width:100%;min-width:0;background:var(--surface2);border:1px solid var(--line);border-radius:10px;padding:9px 10px}
+textarea.in{min-height:110px;resize:vertical;line-height:1.5}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 10px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.grid3 label.f{margin:4px 0}
+.grid3 .in{text-align:center;font-size:20px}
+.step{font-family:var(--serif);font-weight:800;color:var(--gold);margin-right:2px}
+.skedit{display:grid;grid-template-columns:1fr auto auto;gap:6px;align-items:center;padding:5px 0;border-bottom:1px solid var(--line)}
+.skedit:last-child{border-bottom:0}
+.atkedit{border:1px solid var(--line);border-radius:12px;padding:10px;margin:10px 0;background:var(--surface2)}
+.atkedit .in{background:var(--surface)}
+.hint{background:var(--gold-soft);color:var(--ink);border-radius:10px;padding:10px 12px;font-size:15px;margin:8px 0}
+.danger{color:var(--red);background:none;border:1px solid var(--red);border-radius:10px;padding:10px 14px}
+
+/* Würfel */
+.dice{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.dice button{border:1px solid var(--line);background:var(--surface2);border-radius:10px;padding:10px 0;font-weight:700;font-size:15px}
+.modebar{display:flex;gap:6px;margin-bottom:10px}
+.modebar button{flex:1;border:1px solid var(--line);background:var(--surface2);border-radius:10px;padding:7px 4px;font-size:15px}
+.modebar button.on{background:var(--ink);color:var(--bg);border-color:var(--ink);font-weight:700}
+
+/* Assistent */
+.wcards{display:grid;gap:8px;margin:10px 0}
+.wcard{text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.wcard b{display:block;font-family:var(--serif);font-size:20px}
+.wcard span{display:block}
+.wcard small{display:block;color:var(--muted);font-size:14px;margin-top:3px}
+.wcard.on{border:2px solid var(--gold);background:var(--gold-soft)}
+.wh{font-family:var(--serif);font-size:21px;margin:18px 0 0}
+.wprog{height:6px;background:var(--line);border-radius:4px;overflow:hidden;margin:6px 0 8px}
+.wprog i{display:block;height:100%;background:var(--gold)}
+.wab{display:grid;grid-template-columns:1fr 84px 76px;gap:8px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line)}
+.wab small{display:block;color:var(--muted);font-size:13px}
+.wnav{display:flex;gap:8px;padding:10px 16px;flex:1}
+.wnav button{flex:1;border-radius:10px;padding:12px;border:1px solid var(--line);background:var(--surface2);font-weight:700;font-size:16px;color:var(--ink)}
+.wnav button.go{background:var(--gold);color:#1B1B1B;border-color:var(--gold)}
+.wnav button:disabled{opacity:.45}
+.linkbtn{background:none;border:0;color:var(--muted);text-decoration:underline;padding:8px 0}
+ul.tr{margin:6px 0 0;padding-left:18px}
+.tog:disabled{opacity:.4}
+/* Navigation */
+nav{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px);z-index:10}
+nav .in2{max-width:720px;margin:0 auto;display:flex}
+nav button{flex:1;background:none;border:0;padding:12px 2px 13px;font-size:15px;color:var(--muted);border-top:3px solid transparent}
+nav button.on{color:var(--ink);font-weight:700;border-top-color:var(--gold)}
+
+/* Wurfanzeige */
+.roll{position:fixed;left:50%;bottom:calc(76px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);opacity:0;pointer-events:none;
+  width:min(440px,calc(100% - 24px));background:var(--ink);color:var(--bg);border-radius:18px;padding:14px 16px;display:flex;gap:14px;align-items:center;
+  transition:opacity .18s, transform .18s;z-index:20}
+.roll.show{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+.d20{width:72px;height:80px;flex:none;display:grid;place-items:center;background:var(--gold);color:#1B1B1B;font-family:var(--serif);font-weight:800;font-size:32px;
+  clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%)}
+.roll.crit .d20{background:#7ED3B2}
+.roll.fumble .d20{background:#F08A7E}
+.roll.spin .d20{animation:spin .45s ease-out}
+@keyframes spin{from{transform:rotate(-200deg) scale(.6)}to{transform:none}}
+.roll .t{font-weight:700;font-size:17px}
+.roll .b{font-size:14px;opacity:.8}
+.roll .note{font-size:14px;font-weight:700;margin-top:2px}
+
+/* Hilfe */
+.sheetbg{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:30;display:none;align-items:flex-end;justify-content:center}
+.sheetbg.show{display:flex}
+.sheet{background:var(--surface);width:100%;max-width:560px;border-radius:18px 18px 0 0;padding:18px 18px calc(22px + env(safe-area-inset-bottom,0px))}
+.sheet h3{font-family:var(--serif);font-size:23px;margin:0 0 6px}
+.sheet p{margin:0 0 14px}
+
+@media (max-width:420px){
+  .stats{grid-template-columns:repeat(2,1fr)}
+  .dice{grid-template-columns:repeat(4,1fr)}
+}
+@media (prefers-reduced-motion: reduce){
+  *{transition:none!important;animation:none!important}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <select id="charSel" aria-label="Charakter wählen"></select>
+    <button class="iconbtn" id="newChar">+ Neu</button>
+  </div>
+  <div class="hero" id="hero"></div>
+  <main id="main"></main>
+</div>
+
+<nav><div class="in2" id="nav"></div></nav>
+
+<div class="roll" id="roll" role="status" aria-live="polite"><div class="d20" id="rollNum">20</div><div><div class="t" id="rollT"></div><div class="b" id="rollB"></div><div class="note" id="rollN"></div></div></div>
+
+<div class="sheetbg" id="helpBg"><div class="sheet" role="dialog" aria-modal="true"><h3 id="helpT"></h3><p id="helpP"></p><div class="btnrow" id="helpBtns"></div></div></div>
+
+<script>
+/* ---------- Regeldaten ---------- */
+const ABIL=[["str","Stärke","STÄ"],["dex","Geschicklichkeit","GES"],["con","Konstitution","KON"],["int","Intelligenz","INT"],["wis","Weisheit","WEI"],["cha","Charisma","CHA"]];
+const AB=Object.fromEntries(ABIL.map(a=>[a[0],a]));
+const SKILLS=[["akrobatik","Akrobatik","dex"],["arkane","Arkane Kunde","int"],["athletik","Athletik","str"],["auftreten","Auftreten","cha"],["einschuechtern","Einschüchtern","cha"],["fingerfertigkeit","Fingerfertigkeit","dex"],["geschichte","Geschichte","int"],["heilkunde","Heilkunde","wis"],["heimlichkeit","Heimlichkeit","dex"],["tiere","Mit Tieren umgehen","wis"],["motiv","Motiv erkennen","wis"],["nachforschungen","Nachforschungen","int"],["naturkunde","Naturkunde","int"],["religion","Religion","int"],["taeuschen","Täuschen","cha"],["ueberleben","Überlebenskunst","wis"],["ueberzeugen","Überzeugen","cha"],["wahrnehmung","Wahrnehmung","wis"]];
+const CLASSES={
+  "Barbar":{hd:12,saves:["str","con"]},
+  "Barde":{hd:8,saves:["dex","cha"],cast:"cha",table:"full"},
+  "Druide":{hd:8,saves:["int","wis"],cast:"wis",table:"full",prep:"full"},
+  "Hexenmeister":{hd:8,saves:["wis","cha"],cast:"cha",table:"pact"},
+  "Kämpfer":{hd:10,saves:["str","con"]},
+  "Kleriker":{hd:8,saves:["wis","cha"],cast:"wis",table:"full",prep:"full"},
+  "Magier":{hd:6,saves:["int","wis"],cast:"int",table:"full",prep:"full"},
+  "Mönch":{hd:8,saves:["str","dex"]},
+  "Paladin":{hd:10,saves:["wis","cha"],cast:"cha",table:"half",prep:"half"},
+  "Schurke":{hd:8,saves:["dex","int"]},
+  "Waldläufer":{hd:10,saves:["str","dex"],cast:"wis",table:"half"},
+  "Zauberer":{hd:6,saves:["con","cha"],cast:"cha",table:"full"}
+};
+const FULL=[[],[2],[3],[4,2],[4,3],[4,3,2],[4,3,3],[4,3,3,1],[4,3,3,2],[4,3,3,3,1],[4,3,3,3,2],[4,3,3,3,2,1],[4,3,3,3,2,1],[4,3,3,3,2,1,1],[4,3,3,3,2,1,1],[4,3,3,3,2,1,1,1],[4,3,3,3,2,1,1,1],[4,3,3,3,2,1,1,1,1],[4,3,3,3,3,1,1,1,1],[4,3,3,3,3,2,1,1,1],[4,3,3,3,3,2,2,1,1]];
+const HALF=[[],[],[2],[3],[3],[4,2],[4,2],[4,3],[4,3],[4,3,2],[4,3,2],[4,3,3],[4,3,3],[4,3,3,1],[4,3,3,1],[4,3,3,2],[4,3,3,2],[4,3,3,3,1],[4,3,3,3,1],[4,3,3,3,2],[4,3,3,3,2]];
+const ARMOR={
+  none:["Keine Rüstung",10,9],barb:["Ungerüstete Verteidigung (Barbar)",10,9],monk:["Ungerüstete Verteidigung (Mönch)",10,9],leder:["Lederrüstung",11,9],beschlagen:["Beschlagenes Leder",12,9],
+  fell:["Fellrüstung",12,2],kettenhemd:["Kettenhemd",13,2],schuppen:["Schuppenpanzer",14,2],brust:["Brustplatte",14,2],halbplatte:["Halbplatte",15,2],
+  ring:["Ringpanzer",14,0],ketten:["Kettenpanzer",16,0],schienen:["Schienenpanzer",17,0],platte:["Plattenpanzer",18,0]
+};
+const HELP={
+  rk:["Rüstungsklasse (RK)","So schwer bist du zu treffen. Ein Gegner trifft dich, wenn sein Angriffswurf mindestens deine RK erreicht."],
+  init:["Initiative","Zu Beginn eines Kampfes würfeln alle W20 + Initiative. Wer höher liegt, ist früher dran. Tippe auf den Wert, um zu würfeln."],
+  bew:["Bewegungsrate","So weit kannst du in deinem Zug laufen. Ein Feld auf einer Karte sind meist 1,5 m."],
+  ueb:["Übungsbonus","Kommt dazu, wenn du in etwas geübt bist. Er hängt nur von deiner Stufe ab: +2 auf Stufe 1–4, +3 ab Stufe 5 usw."],
+  tp:["Trefferpunkte (TP)","Deine Lebenspunkte. Bei 0 TP fällst du bewusstlos um und machst Todesrettungswürfe. Gib Schaden oder Heilung unten ein."],
+  tod:["Todesrettungswürfe","Bei 0 TP würfelst du in jedem Zug einen W20: ab 10 ist es ein Erfolg, darunter ein Misserfolg. 3 Erfolge: stabil. 3 Misserfolge: tot. Eine 20 bringt dich mit 1 TP zurück, eine 1 zählt als zwei Misserfolge."],
+  atk:["Angriffe","Tippe auf den goldenen Bonus, um anzugreifen: W20 + Bonus. Erreichst du die RK des Gegners, triffst du. Dann tippst du auf den Schaden."],
+  abil:["Attribute","Groß steht der Modifikator, klein darunter der Wert. Beim Würfeln zählt immer der Modifikator. Tippe ein Attribut an für einen einfachen Attributswurf."],
+  save:["Rettungswürfe","Damit widerstehst du Gefahren wie Gift, Fallen oder Zaubern. Ein farbiger Punkt heißt geübt, dann kommt dein Übungsbonus dazu. Welche du kannst, legt deine Klasse fest."],
+  skill:["Fertigkeiten","Sagt der Spielleiter z. B. „Mach einen Wurf auf Wahrnehmung“, tippst du hier drauf. Grüner Punkt: geübt (+ Übungsbonus). Goldener Punkt: Expertise (doppelter Übungsbonus)."],
+  passiv:["Passive Wahrnehmung","10 + dein Wahrnehmungswert. Damit prüft der Spielleiter, ob du etwas bemerkst, ohne dass du würfeln musst."],
+  slots:["Zauberplätze","Jeder Zauber ab Grad 1 verbraucht einen Platz. Tippe eine Raute an, wenn du einen benutzt. Nach einer langen Rast sind alle wieder da."],
+  tricks:["Zaubertricks","Kosten keinen Zauberplatz. Du kannst sie so oft wirken, wie du willst."],
+  prep:["Vorbereitete Zauber","Nur vorbereitete Zauber kannst du heute wirken. Nach jeder langen Rast darfst du neu auswählen. Die Höchstzahl steht oben."],
+  zwerte:["Zauberangriff und Zauber-SG","Zauberangriff: W20 + Bonus gegen die RK des Ziels, wie bei Waffen. Zauber-SG: Diesen Wert muss ein Gegner bei seinem Rettungswurf mindestens erreichen, sonst wirkt dein Zauber voll."],
+  rast:["Rasten","Kurze Rast (ca. 1 Std.): Du kannst Trefferwürfel ausgeben und dich damit heilen. Lange Rast (8 Std.): Volle TP, alle Zauberplätze zurück und die Hälfte deiner Trefferwürfel."],
+  tw:["Trefferwürfel","Bei einer kurzen Rast würfelst du einen davon + KON-Modifikator und heilst so viele TP. Du hast so viele, wie deine Stufe ist."],
+  mode:["Vorteil und Nachteil","Bei Vorteil würfelst du zwei W20 und nimmst den höheren, bei Nachteil den niedrigeren. Der Spielleiter sagt dir, wann das gilt."]
+};
+
+/* ---------- Hilfsfunktionen ---------- */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const mod=s=>Math.floor(((+s||0)-10)/2);
+const sg=n=>(n>=0?"+":"−")+Math.abs(n);
+const uid=()=>"c"+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const d=n=>1+Math.floor(Math.random()*n);
+const profB=c=>2+Math.floor((Math.max(1,c.level)-1)/4);
+const cls=c=>CLASSES[c.cls]||{hd:8,saves:[]};
+
+function blank(){
+  return {id:uid(),name:"Neuer Held",player:"",cls:"Kämpfer",level:1,race:"",background:"",alignment:"",
+    scores:{str:10,dex:10,con:10,int:10,wis:10,cha:10},saves:["str","con"],skills:[],expertise:[],
+    speed:"9 m",armor:"none",shield:false,acBonus:0,mageArmor:false,hpMax:10,hp:10,hpTemp:0,hdUsed:0,
+    deathS:0,deathF:0,inspiration:false,attacks:[],cantrips:[],spells:[],slotsUsed:[0,0,0,0,0,0,0,0,0],
+    equipment:"",languages:"",features:"",personality:"",notes:"",updated:Date.now()};
+}
+
+/* ---------- Berechnungen ---------- */
+function saveVal(c,a){return mod(c.scores[a])+(c.saves.includes(a)?profB(c):0)}
+function skillVal(c,k,ab){const p=profB(c);return mod(c.scores[ab])+(c.skills.includes(k)?p:0)+(c.expertise.includes(k)?p:0)}
+function acVal(c){
+  let base,cap;
+  if(c.armor==="none"&&c.mageArmor){base=13;cap=9}else{[,base,cap]=ARMOR[c.armor]||ARMOR.none}
+  return base+Math.min(mod(c.scores.dex),cap)+(c.shield?2:0)+(+c.acBonus||0)+(c.armor==="barb"?mod(c.scores.con):c.armor==="monk"?mod(c.scores.wis):0);
+}
+function passive(c){return 10+skillVal(c,"wahrnehmung","wis")}
+function castAbil(c){return cls(c).cast||c.castAbil||"int"}
+function isCaster(c){return !!cls(c).cast||c.cantrips.length>0||c.spells.length>0}
+function spellAtk(c){return mod(c.scores[castAbil(c)])+profB(c)}
+function spellDC(c){return 8+spellAtk(c)}
+function slotsMax(c){
+  const k=cls(c),L=Math.min(20,Math.max(1,c.level));let arr=[];
+  if(k.table==="full")arr=FULL[L];else if(k.table==="half")arr=HALF[L];
+  else if(k.table==="pact"){const n=L>=17?4:L>=11?3:L>=2?2:1;const lv=Math.min(5,Math.ceil(L/2));arr=Array(lv).fill(0);arr[lv-1]=n}
+  const out=Array(9).fill(0);arr.forEach((v,i)=>out[i]=v);return out;
+}
+function prepMax(c){
+  const k=cls(c);if(!k.prep)return null;const m=mod(c.scores[k.cast]);
+  return Math.max(1,k.prep==="half"?m+Math.floor(c.level/2):m+c.level);
+}
+function atkInfo(c,a){
+  const p=profB(c);
+  if(a.kind==="waffe"){
+    let ab=a.abil||"str";
+    if(ab==="fin")ab=mod(c.scores.dex)>=mod(c.scores.str)?"dex":"str";
+    const m=mod(c.scores[ab]);
+    return {bonus:m+p,parts:[[AB[ab][2],m],["Übung",p]],dmg:(a.die||"1W4")+(m?(m>0?"+":"")+m:""),abShort:AB[ab][2]};
+  }
+  if(a.kind==="zauber"){const ab=castAbil(c),m=mod(c.scores[ab]);return {bonus:m+p,parts:[[AB[ab][2],m],["Übung",p]],dmg:a.die}}
+  if(a.kind==="rettung")return {dc:spellDC(c),dmg:a.die};
+  return {auto:true,dmg:a.die};
+}
+function hpSuggest(c){const k=cls(c),m=mod(c.scores.con);return Math.max(1,k.hd+m+(c.level-1)*(k.hd/2+1+m))+(c.hpLvlBonus||0)*c.level}
+
+/* ---------- Speicher ---------- */
+const LS="heldenbogen-v1";
+let chars=[],curId=null,tab="kampf",rollMode="normal";
+function loadLocal(){
+  try{const r=JSON.parse(localStorage.getItem(LS)||"null");if(r&&Array.isArray(r.chars)){chars=r.chars;curId=r.cur}}catch(e){}
+}
+function saveLocal(){try{localStorage.setItem(LS,JSON.stringify({chars,cur:curId}))}catch(e){}}
+function normalize(c){const b=blank();for(const k in b)if(c[k]===undefined)c[k]=b[k];c.scores={...b.scores,...c.scores};return c}
+function cur(){return chars.find(c=>c.id===curId)||chars[0]}
+function save(c){c.updated=Date.now();saveLocal()}
+
+/* ---------- Würfeln ---------- */
+let rollTimer;
+function showRoll(num,title,breakdown,note,cls2){
+  const r=$("#roll");$("#rollNum").textContent=num;$("#rollT").textContent=title;$("#rollB").textContent=breakdown;$("#rollN").textContent=note||"";
+  r.className="roll show spin "+(cls2||"");clearTimeout(rollTimer);rollTimer=setTimeout(()=>r.classList.remove("show"),5000);
+}
+function rollD20(title,parts){
+  const a=d(20),b=d(20);let used=a,dieTxt="W20: "+a;
+  if(rollMode==="vorteil"){used=Math.max(a,b);dieTxt=`W20 (${a} / ${b}, Vorteil): ${used}`}
+  if(rollMode==="nachteil"){used=Math.min(a,b);dieTxt=`W20 (${a} / ${b}, Nachteil): ${used}`}
+  const total=used+parts.reduce((s,p)=>s+p[1],0);
+  const br=[dieTxt,...parts.filter(p=>p[1]!==0).map(p=>`${p[0]} ${sg(p[1])}`)].join("  ");
+  const note=used===20?"Natürliche 20!":used===1?"Natürliche 1 …":"";
+  showRoll(total,title,br,note,used===20?"crit":used===1?"fumble":"");
+  return used;
+}
+function parseDice(f){
+  const re=/([+-]?)\s*(\d*)\s*[WwDd]\s*(\d+)|([+-]?)\s*(\d+)/g;let m,terms=[];
+  f=String(f||"").replace(/\s/g,"");
+  while((m=re.exec(f))){if(m[3])terms.push({n:+(m[2]||1),s:+m[3],neg:m[1]==="-"});else if(m[5])terms.push({k:+m[5],neg:m[4]==="-"})}
+  return terms;
+}
+function rollFormula(title,f){
+  const t=parseDice(f);if(!t.length){showRoll("?",title,"Keine Würfelangabe gefunden, z. B. 1W8+2");return}
+  let total=0,bits=[];
+  for(const x of t){
+    if(x.s){const rs=Array.from({length:x.n},()=>d(x.s));const s=rs.reduce((a,b)=>a+b,0);total+=x.neg?-s:s;bits.push(`${x.n}W${x.s}: ${rs.join(" + ")}`)}
+    else{total+=x.neg?-x.k:x.k;bits.push((x.neg?"− ":"+ ")+x.k)}
+  }
+  showRoll(Math.max(0,total),title,bits.join("  "));
+}
+
+/* ---------- Rendern ---------- */
+const helpBtn=k=>`<button class="help" data-help="${k}" aria-label="Erklärung">?</button>`;
+function renderTop(){
+  const c=cur();
+  $("#charSel").innerHTML=chars.map(x=>`<option value="${x.id}" ${x.id===c.id?"selected":""}>${esc(x.name||"Ohne Namen")}</option>`).join("");
+  const sub=[`Stufe ${c.level} ${esc(c.cls)}`,esc(c.race),esc(c.background)].filter(Boolean).join(", ");
+  $("#hero").innerHTML=`<h1>${esc(c.name||"Ohne Namen")}</h1><p>${sub}</p><button class="chip" data-act="lvl" style="margin-top:8px">Stufe aufsteigen</button>`;
+  const tabs=[["kampf","Kampf"],["werte","Werte"]];
+  if(isCaster(c))tabs.push(["zauber","Zauber"]);
+  tabs.push(["notizen","Notizen"],["bearbeiten","Bearbeiten"]);
+  if(!tabs.find(t=>t[0]===tab))tab="kampf";
+  $("#nav").innerHTML=tabs.map(([k,l])=>`<button data-tab="${k}" class="${k===tab?"on":""}">${l}</button>`).join("");
+}
+function modeBar(){
+  return `<div class="modebar">${["normal","vorteil","nachteil"].map(m=>`<button data-mode="${m}" class="${rollMode===m?"on":""}">${m[0].toUpperCase()+m.slice(1)}</button>`).join("")}${helpBtn("mode")}</div>`;
+}
+function vKampf(c){
+  const p=profB(c),ini=mod(c.scores.dex),pct=Math.max(0,Math.min(100,c.hp/Math.max(1,c.hpMax)*100));
+  const hasMA=c.spells.some(s=>/magierr[üu]stung/i.test(s.name));
+  const hdLeft=c.level-c.hdUsed;
+  let h=`<div class="stats">
+    <div class="stat"><b>${acVal(c)}</b><span>Rüstungsklasse</span>${helpBtn("rk")}</div>
+    <button class="stat" data-roll="init"><b>${sg(ini)}</b><span>Initiative</span></button>
+    <div class="stat"><b style="font-size:24px;line-height:1.3">${esc(c.speed)}</b><span>Bewegung</span>${helpBtn("bew")}</div>
+    <div class="stat"><b>${sg(p)}</b><span>Übungsbonus</span>${helpBtn("ueb")}</div>
+  </div>`;
+  if(hasMA&&c.armor==="none")h+=`<div class="btnrow"><button class="chip ${c.mageArmor?"on":""}" data-act="mageArmor">Magierrüstung ${c.mageArmor?"aktiv":"aus"} (RK ${13+mod(c.scores.dex)})</button></div>`;
+  h+=`<section class="card"><h2>Trefferpunkte ${helpBtn("tp")}</h2>
+    <div class="hp"><span class="cur">${c.hp}</span><span class="max">/ ${c.hpMax}</span>${c.hpTemp>0?`<span class="tmp">+${c.hpTemp} temporär</span>`:""}</div>
+    <div class="hpbar ${pct<=30?"low":""}"><i style="width:${pct}%"></i></div>
+    <div class="hprow"><input id="hpAmt" type="number" inputmode="numeric" min="0" placeholder="Menge" aria-label="Menge">
+      <button class="btn dmg" data-act="dmg">Schaden</button><button class="btn heal" data-act="heal">Heilen</button></div>
+    <div class="btnrow"><button class="btn" data-act="temp">Temporäre TP setzen</button>
+      <button class="chip ${c.inspiration?"on":""}" data-act="insp">Inspiration ${c.inspiration?"da":"keine"}</button></div>`;
+  if(c.hp<=0||c.deathS||c.deathF){
+    h+=`<div class="death"><span>Erfolge</span><div class="pips">${[0,1,2].map(i=>`<button class="pip s ${i<c.deathS?"on":""}" data-death="s${i+1}" aria-label="Erfolg ${i+1}"></button>`).join("")}</div>
+      <span>Misserfolge</span><div class="pips">${[0,1,2].map(i=>`<button class="pip f ${i<c.deathF?"on":""}" data-death="f${i+1}" aria-label="Misserfolg ${i+1}"></button>`).join("")}</div></div>
+      <div class="btnrow"><button class="btn gold" data-act="deathroll">Todesrettungswurf würfeln</button>${helpBtn("tod")}</div>`;
+  }
+  h+=`</section>`;
+  h+=`<section class="card"><h2>Angriffe ${helpBtn("atk")}</h2>${modeBar()}`;
+  if(!c.attacks.length)h+=`<p class="muted">Noch keine Angriffe. Unter „Bearbeiten“ kannst du Waffen und Zauber eintragen.</p>`;
+  c.attacks.forEach((a,i)=>{
+    const inf=atkInfo(c,a);
+    const hit=inf.auto?`<span class="pill">trifft</span>`:inf.dc?`<span class="pill" title="Gegner würfelt">SG ${inf.dc} ${AB[a.save||"dex"][2]}</span>`:`<button class="pill hit" data-atk="${i}">${sg(inf.bonus)}</button>`;
+    h+=`<div class="atk"><div class="n"><b>${esc(a.name)}</b><small>${esc(inf.dmg)} ${esc(a.type)}${a.note?", "+esc(a.note):""}</small></div>${hit}<button class="pill" data-dmg="${i}">Schaden</button></div>`;
+  });
+  h+=`</section>`;
+  h+=`<section class="card"><h2>Rasten ${helpBtn("rast")}</h2>
+    <p class="small muted">Trefferwürfel übrig: <b style="color:var(--ink)">${hdLeft} von ${c.level}</b> (W${cls(c).hd}) ${helpBtn("tw")}</p>
+    <div class="btnrow"><button class="btn" data-act="hd" ${hdLeft<=0?"disabled":""}>Trefferwürfel ausgeben</button><button class="btn gold" data-act="long">Lange Rast</button></div></section>`;
+  h+=`<section class="card"><h2>Freie Würfel</h2><div class="dice">${[4,6,8,10,12,20,100].map(n=>`<button data-die="${n}">W${n}</button>`).join("")}</div></section>`;
+  return h;
+}
+function vWerte(c){
+  let h=`<section class="card"><h2>Attribute ${helpBtn("abil")}</h2>${modeBar()}<div class="abils">`;
+  h+=ABIL.map(([k,l])=>`<button class="abil" data-roll="abil:${k}"><div class="lbl">${l}</div><div class="m">${sg(mod(c.scores[k]))}</div><span class="s">${c.scores[k]}</span></button>`).join("");
+  h+=`</div></section>`;
+  h+=`<section class="card"><h2>Rettungswürfe ${helpBtn("save")}</h2><div class="list">`;
+  h+=ABIL.map(([k,l])=>`<button class="row" data-roll="save:${k}"><span class="dot ${c.saves.includes(k)?"p":""}"></span><span class="name">${l}</span><span class="val">${sg(saveVal(c,k))}</span></button>`).join("");
+  h+=`</div></section>`;
+  h+=`<section class="card"><h2>Fertigkeiten ${helpBtn("skill")}</h2><div class="list">`;
+  h+=SKILLS.map(([k,l,ab])=>{const e=c.expertise.includes(k),p=c.skills.includes(k);
+    return `<button class="row" data-roll="skill:${k}"><span class="dot ${e?"e":p?"p":""}"></span><span class="name">${l} <small>${AB[ab][2]}</small></span><span class="val">${sg(skillVal(c,k,ab))}</span></button>`}).join("");
+  h+=`</div></section>`;
+  h+=`<section class="card"><h2>Passive Wahrnehmung ${helpBtn("passiv")}</h2><div class="hp"><span class="cur" style="font-size:44px">${passive(c)}</span></div></section>`;
+  return h;
+}
+function vZauber(c){
+  const ab=castAbil(c),max=slotsMax(c),pm=prepMax(c);
+  const prepCount=c.spells.filter(s=>s.prepared&&s.level>0).length;
+  let h=`<div class="stats" style="grid-template-columns:repeat(3,1fr)">
+    <button class="stat" data-roll="spell"><b>${sg(spellAtk(c))}</b><span>Zauberangriff</span></button>
+    <div class="stat"><b>${spellDC(c)}</b><span>Zauber-SG</span>${helpBtn("zwerte")}</div>
+    <div class="stat"><b>${AB[ab][2]}</b><span>Zauberattribut</span></div></div>`;
+  if(max.some(v=>v>0)){
+    h+=`<section class="card"><h2>Zauberplätze ${helpBtn("slots")}</h2>`;
+    max.forEach((m,i)=>{if(!m)return;const used=c.slotsUsed[i]||0;
+      h+=`<div class="slotrow"><span class="g">Grad ${i+1}</span><div>${Array.from({length:m},(_,j)=>`<button class="slot ${j<used?"used":""}" data-slot="${i}:${j}" aria-label="Platz Grad ${i+1}"></button>`).join("")}</div><span class="muted small">${m-used} frei</span></div>`});
+    h+=`</section>`;
+  }
+  h+=`<section class="card"><h2>Zaubertricks ${helpBtn("tricks")}</h2>`;
+  h+=c.cantrips.length?c.cantrips.map((n,i)=>`<div class="spell"><span class="n">${esc(n)}</span><button class="x" data-rmc="${i}" aria-label="Entfernen">×</button></div>`).join(""):`<p class="muted">Noch keine eingetragen.</p>`;
+  h+=`</section>`;
+  h+=`<section class="card"><h2>Zauber ${helpBtn("prep")}</h2>`;
+  if(pm!==null)h+=`<p class="small ${prepCount>pm?"":"muted"}" style="${prepCount>pm?"color:var(--red)":""}">Vorbereitet: <b>${prepCount} von ${pm}</b>${prepCount>pm?", das sind zu viele":""}</p>`;
+  const levels=[...new Set(c.spells.map(s=>s.level))].sort((a,b)=>a-b);
+  if(!c.spells.length)h+=`<p class="muted">Noch keine Zauber eingetragen.</p>`;
+  levels.forEach(l=>{
+    h+=`<div class="grade">Grad ${l}</div>`;
+    c.spells.forEach((s,i)=>{if(s.level!==l)return;
+      h+=`<div class="spell"><span class="n">${esc(s.name)}</span>${pm!==null?`<button class="tog ${s.prepared?"on":""}" data-prep="${i}">${s.prepared?"vorbereitet":"nicht vorbereitet"}</button>`:""}<button class="x" data-rms="${i}" aria-label="Entfernen">×</button></div>`});
+  });
+  h+=`<div class="addrow"><input class="in" id="spName" placeholder="Name eines Zaubers oder Tricks"><select class="in" id="spLvl" aria-label="Grad"><option value="0">Trick</option>${[1,2,3,4,5,6,7,8,9].map(n=>`<option value="${n}">Grad ${n}</option>`).join("")}</select><button class="btn" data-act="addSpell">Hinzufügen</button></div></section>`;
+  return h;
+}
+function vNotizen(c){
+  const ta=(k,l,ph)=>`<label class="f"><span>${l}</span><textarea class="in" data-text="${k}" placeholder="${ph}">${esc(c[k])}</textarea></label>`;
+  return `<section class="card">${ta("features","Merkmale und Eigenschaften","Was deine Klasse und dein Volk besonders können")}${ta("equipment","Ausrüstung","Eine Sache pro Zeile")}${ta("languages","Sprachen und sonstige Übungen","Sprachen, Waffen, Werkzeuge")}</section>
+  <section class="card">${ta("personality","Persönlichkeit, Ideale, Bindungen, Makel","Wie tickt dein Charakter?")}${ta("notes","Notizen zum Abenteuer","Namen, Orte, Hinweise …")}</section>`;
+}
+function vEdit(c){
+  const k=cls(c),inp=(path,l,type="text",extra="")=>`<label class="f"><span>${l}</span><input class="in" type="${type}" data-bind="${path}" value="${esc(path.split(".").reduce((o,x)=>o?.[x],c))}" ${extra}></label>`;
+  let h=`<section class="card"><h2><span class="step">1</span> Grunddaten</h2>
+    ${inp("name","Charaktername")}
+    <div class="grid2"><label class="f"><span>Klasse</span><select class="in" data-bind="cls">${Object.keys(CLASSES).map(n=>`<option ${n===c.cls?"selected":""}>${n}</option>`).join("")}</select></label>
+    ${inp("level","Stufe","number",'min="1" max="20" inputmode="numeric"')}</div>
+    <div class="grid2">${inp("race","Volk")}${inp("background","Hintergrund")}</div>
+    <div class="grid2">${inp("alignment","Gesinnung")}${inp("player","Spielername")}</div></section>`;
+  h+=`<section class="card"><h2><span class="step">2</span> Attributswerte</h2><p class="small muted">Trag die Werte inklusive der Boni von deinem Volk ein. Den Modifikator rechnet die Seite selbst aus.</p><div class="grid3">`;
+  h+=ABIL.map(([a,l])=>`<label class="f"><span>${l}</span><input class="in" type="number" inputmode="numeric" min="1" max="30" data-bind="scores.${a}" data-num value="${c.scores[a]}"></label>`).join("");
+  h+=`</div></section>`;
+  h+=`<section class="card"><h2><span class="step">3</span> Rettungswürfe und Fertigkeiten</h2>
+    <p class="small muted">Rettungswürfe gibt deine Klasse vor (${k.saves.map(s=>AB[s][1]).join(" und ")}). Sie werden beim Klassenwechsel automatisch gesetzt.</p>
+    <div class="btnrow" style="margin-bottom:10px">${ABIL.map(([a,,s])=>`<button class="chip ${c.saves.includes(a)?"on":""}" data-tsave="${a}">${s}</button>`).join("")}</div>
+    <div class="hint">Welche Fertigkeiten du wählen darfst, steht bei deiner Klasse und deinem Hintergrund. Expertise haben am Anfang nur Schurken.</div>`;
+  h+=SKILLS.map(([s,l,ab])=>`<div class="skedit"><span>${l} <span class="muted small">${AB[ab][2]}</span></span><button class="tog ${c.skills.includes(s)?"on":""}" data-tskill="${s}">geübt</button><button class="tog ${c.expertise.includes(s)?"on":""}" data-texp="${s}">Expertise</button></div>`).join("");
+  h+=`</section>`;
+  h+=`<section class="card"><h2><span class="step">4</span> Rüstung und Trefferpunkte</h2>
+    <div class="grid2"><label class="f"><span>Rüstung</span><select class="in" data-bind="armor">${Object.entries(ARMOR).map(([key,v])=>`<option value="${key}" ${key===c.armor?"selected":""}>${v[0]}</option>`).join("")}</select></label>
+    <label class="f"><span>Sonstiger RK-Bonus</span><input class="in" type="number" inputmode="numeric" data-bind="acBonus" data-num value="${c.acBonus}"></label></div>
+    <div class="btnrow" style="margin-top:0"><button class="chip ${c.shield?"on":""}" data-act="shield">Schild ${c.shield?"ja (+2)":"nein"}</button></div>
+    <div class="grid2" style="margin-top:6px">${inp("hpMax","Trefferpunktemaximum","number",'inputmode="numeric" data-num')}${inp("speed","Bewegungsrate")}</div>
+    <p class="small muted">Vorschlag für ${esc(c.cls)} Stufe ${c.level}: <b style="color:var(--ink)">${hpSuggest(c)} TP</b> (W${k.hd}, auf Stufe 1 voller Würfel + KON). <button class="tog" data-act="hpSuggest">übernehmen</button></p></section>`;
+  h+=`<section class="card"><h2><span class="step">5</span> Angriffe</h2><p class="small muted">Bonus und Schadensmodifikator rechnet die Seite aus. Bei „Schaden“ nur den Würfel eintragen, z. B. 1W6.</p>`;
+  c.attacks.forEach((a,i)=>{
+    h+=`<div class="atkedit"><div class="grid2">
+      <label class="f"><span>Name</span><input class="in" data-bind="attacks.${i}.name" value="${esc(a.name)}"></label>
+      <label class="f"><span>Art</span><select class="in" data-bind="attacks.${i}.kind">${[["waffe","Waffe"],["zauber","Zauberangriff"],["rettung","Zauber mit Rettungswurf"],["auto","Trifft automatisch"]].map(([v,l])=>`<option value="${v}" ${a.kind===v?"selected":""}>${l}</option>`).join("")}</select></label>`;
+    if(a.kind==="waffe")h+=`<label class="f"><span>Attribut</span><select class="in" data-bind="attacks.${i}.abil">${[["str","Stärke (Nahkampf)"],["dex","Geschick (Fernkampf)"],["fin","Finesse (das bessere)"]].map(([v,l])=>`<option value="${v}" ${(a.abil||"str")===v?"selected":""}>${l}</option>`).join("")}</select></label>`;
+    if(a.kind==="rettung")h+=`<label class="f"><span>Rettungswurf des Gegners</span><select class="in" data-bind="attacks.${i}.save">${ABIL.map(([v,l])=>`<option value="${v}" ${(a.save||"dex")===v?"selected":""}>${l}</option>`).join("")}</select></label>`;
+    h+=`<label class="f"><span>Schaden</span><input class="in" data-bind="attacks.${i}.die" value="${esc(a.die)}" placeholder="1W6"></label>
+      <label class="f"><span>Schadensart</span><input class="in" data-bind="attacks.${i}.type" value="${esc(a.type)}" placeholder="Stich"></label></div>
+      <label class="f"><span>Notiz</span><input class="in" data-bind="attacks.${i}.note" value="${esc(a.note||"")}" placeholder="Reichweite, Besonderheiten"></label>
+      <button class="danger" data-rma="${i}">Angriff entfernen</button></div>`;
+  });
+  h+=`<button class="btn gold" data-act="addAtk">Angriff hinzufügen</button></section>`;
+  h+=`<section class="card"><h2>Sichern</h2><p class="small muted">Dein Bogen liegt nur auf diesem Gerät. Speichere ihn als Datei, um ihn zu sichern oder aufs Handy zu bringen.</p>
+    <div class="btnrow"><button class="btn gold" data-act="export">Als Datei speichern</button><button class="btn" data-act="import">Aus Datei laden</button></div></section>`;
+  h+=`<section class="card"><h2>Charakter löschen</h2><p class="small muted">Entfernt ${esc(c.name)} endgültig.</p><button class="danger" data-act="del">Löschen</button></section>`;
+  return h;
+}
+function render(){
+  $(".top").style.display=W?"none":"";if(W)return wRender();
+  if(!chars.length){$("#hero").innerHTML="";$("#nav").innerHTML="";$("#charSel").innerHTML="";
+    $("#main").innerHTML=`<section class="card"><h2>Willkommen!</h2><p>Hier verwaltest du deinen D&D-Charakter. Alles wird auf diesem Gerät gespeichert.</p>
+    <div class="btnrow"><button class="btn gold" data-act="new">Charakter erstellen</button><button class="btn" data-act="import">Aus Datei laden</button></div></section>`;return}
+  if(!chars.find(c=>c.id===curId))curId=chars[0].id;
+  const c=cur();renderTop();
+  const v={kampf:vKampf,werte:vWerte,zauber:vZauber,notizen:vNotizen,bearbeiten:vEdit}[tab];
+  $("#main").innerHTML=v(c);
+}
+
+/* ---------- Aktionen ---------- */
+function setPath(o,path,val){const ks=path.split(".");let t=o;for(let i=0;i<ks.length-1;i++)t=t[ks[i]];t[ks.at(-1)]=val}
+function toggle(arr,v){const i=arr.indexOf(v);i>=0?arr.splice(i,1):arr.push(v)}
+function update(fn){const c=cur();fn(c);save(c);render()}
+
+document.addEventListener("click",e=>{
+  const t=e.target.closest("button");if(!t)return;
+  const c=cur(),D=t.dataset;
+  if(D.sb)return;
+  if(D.help){const[h,p]=HELP[D.help];sheet(h,p,[["Verstanden"]]);return}
+  if(D.tab){tab=D.tab;render();window.scrollTo(0,0);return}
+  if(D.mode){rollMode=D.mode;render();return}
+  if(D.die){const n=+D.die;showRoll(d(n),"W"+n,"Freier Wurf");return}
+  if(D.roll){
+    const [kind,key]=D.roll.split(":"),p=profB(c);
+    if(kind==="init")rollD20("Initiative",[["GES",mod(c.scores.dex)]]);
+    if(kind==="abil")rollD20(AB[key][1],[[AB[key][2],mod(c.scores[key])]]);
+    if(kind==="save")rollD20("Rettungswurf "+AB[key][1],[[AB[key][2],mod(c.scores[key])],["Übung",c.saves.includes(key)?p:0]]);
+    if(kind==="skill"){const s=SKILLS.find(x=>x[0]===key);rollD20(s[1],[[AB[s[2]][2],mod(c.scores[s[2]])],["Übung",c.skills.includes(key)?p:0],["Expertise",c.expertise.includes(key)?p:0]])}
+    if(kind==="spell"){const ab=castAbil(c);rollD20("Zauberangriff",[[AB[ab][2],mod(c.scores[ab])],["Übung",p]])}
+    return;
+  }
+  if(D.atk){const a=c.attacks[+D.atk],inf=atkInfo(c,a);rollD20(a.name+" (Angriff)",inf.parts);return}
+  if(D.dmg){const a=c.attacks[+D.dmg];rollFormula(a.name+" (Schaden, "+(a.type||"")+")",atkInfo(c,a).dmg);return}
+  if(D.death){const kind=D.death[0],n=+D.death[1];update(x=>{if(kind==="s")x.deathS=x.deathS===n?n-1:n;else x.deathF=x.deathF===n?n-1:n});return}
+  if(D.slot){const[l,j]=D.slot.split(":").map(Number);update(x=>{x.slotsUsed[l]=j<(x.slotsUsed[l]||0)?j:j+1});return}
+  if(D.prep){update(x=>{x.spells[+D.prep].prepared=!x.spells[+D.prep].prepared});return}
+  if(D.rms){update(x=>x.spells.splice(+D.rms,1));return}
+  if(D.rmc){update(x=>x.cantrips.splice(+D.rmc,1));return}
+  if(D.rma){update(x=>x.attacks.splice(+D.rma,1));return}
+  if(D.tsave){update(x=>toggle(x.saves,D.tsave));return}
+  if(D.tskill){update(x=>toggle(x.skills,D.tskill));return}
+  if(D.texp){update(x=>{toggle(x.expertise,D.texp);if(x.expertise.includes(D.texp)&&!x.skills.includes(D.texp))x.skills.push(D.texp)});return}
+  const act=D.act;if(!act)return;
+  if(act==="new")return wNew();
+  if(act==="import")return fileIn.click();
+  if(act==="export")return exportChar();
+  if(act==="lvl"){if(c.level>=20)return;return sheet("Stufe "+(c.level+1)+" erreichen","Deine TP steigen um deinen Trefferwürfel (W"+cls(c).hd+") + KON. Würfeln oder den sicheren Durchschnitt nehmen?",[["Durchschnitt ("+(cls(c).hd/2+1)+")",()=>levelUp(false)],["Würfeln",()=>levelUp(true)],["Abbrechen"]])}
+  const amt=Math.max(0,parseInt(($("#hpAmt")||{}).value)||0);
+  switch(act){
+    case "dmg":if(!amt)return;update(x=>{let r=amt;const t2=Math.min(x.hpTemp,r);x.hpTemp-=t2;r-=t2;x.hp=Math.max(0,x.hp-r)});break;
+    case "heal":if(!amt)return;update(x=>{if(x.hp<=0){x.deathS=0;x.deathF=0}x.hp=Math.min(x.hpMax,x.hp+amt)});break;
+    case "temp":update(x=>{x.hpTemp=amt});break;
+    case "insp":update(x=>{x.inspiration=!x.inspiration});break;
+    case "mageArmor":update(x=>{x.mageArmor=!x.mageArmor});break;
+    case "shield":update(x=>{x.shield=!x.shield});break;
+    case "deathroll":{const r=d(20);let note;
+      update(x=>{if(r===20){x.hp=1;x.deathS=0;x.deathF=0;note="Du kommst mit 1 TP zurück!"}
+        else if(r===1){x.deathF=Math.min(3,x.deathF+2);note="Zählt als zwei Misserfolge."}
+        else if(r>=10){x.deathS=Math.min(3,x.deathS+1);note=x.deathS>=3?"Drei Erfolge: du bist stabil.":"Erfolg."}
+        else{x.deathF=Math.min(3,x.deathF+1);note="Misserfolg."}
+        if(x.deathF>=3)note="Drei Misserfolge. Sprich mit deinem Spielleiter.";});
+      showRoll(r,"Todesrettungswurf","W20: "+r,note,r===20?"crit":r===1?"fumble":"");break}
+    case "hd":{const k=cls(c),r=d(k.hd),m=mod(c.scores.con),heal=Math.max(0,r+m);
+      update(x=>{x.hdUsed++;x.hp=Math.min(x.hpMax,x.hp+heal)});showRoll(heal,"Trefferwürfel","W"+k.hd+": "+r+"  KON "+sg(m),"Du heilst "+heal+" TP.");break}
+    case "long":update(x=>{x.hp=x.hpMax;x.hpTemp=0;x.deathS=0;x.deathF=0;x.slotsUsed=[0,0,0,0,0,0,0,0,0];x.hdUsed=Math.max(0,x.hdUsed-Math.max(1,Math.floor(x.level/2)));x.mageArmor=false});
+      showRoll("✓","Lange Rast","Volle TP und alle Zauberplätze zurück.");break;
+    case "addSpell":{const n=$("#spName").value.trim(),l=+$("#spLvl").value;if(!n)return;
+      update(x=>{if(l===0)x.cantrips.push(n);else x.spells.push({name:n,level:l,prepared:false})});break}
+    case "addAtk":update(x=>x.attacks.push({name:"Neue Waffe",kind:"waffe",abil:"str",die:"1W6",type:"Hieb",note:""}));break;
+    case "hpSuggest":update(x=>{x.hpMax=hpSuggest(x);x.hp=x.hpMax});break;
+    case "del":{if(!confirm(c.name+" wirklich löschen?"))return;const id=c.id;chars=chars.filter(x=>x.id!==id);curId=chars[0]?.id;saveLocal();tab="kampf";render();break}
+  }
+});
+document.addEventListener("change",e=>{
+  const t=e.target;
+  if(t.id==="charSel"){curId=t.value;saveLocal();render();return}
+  if(t.dataset.bind){
+    const path=t.dataset.bind;
+    update(c=>{
+      let v=t.value;
+      if(t.hasAttribute("data-num")||path==="level")v=parseInt(v)||0;
+      if(path==="level")v=Math.min(20,Math.max(1,v));
+      setPath(c,path,v);
+      if(path==="cls")c.saves=[...cls(c).saves];
+      if(path==="hpMax")c.hp=Math.min(c.hp,c.hpMax)||c.hpMax;
+      if(path==="level")c.hdUsed=Math.min(c.hdUsed,c.level);
+      if(/^attacks\.\d+\.kind$/.test(path)){const a=c.attacks[+path.split(".")[1]];if(a.kind==="waffe"&&!a.abil)a.abil="str";if(a.kind==="rettung"&&!a.save)a.save="dex"}
+    });
+  }
+});
+document.addEventListener("input",e=>{
+  const t=e.target;if(!t.dataset.text)return;
+  const c=cur();c[t.dataset.text]=t.value;save(c);
+});
+document.addEventListener("keydown",e=>{
+  if(e.key==="Escape")$("#helpBg").classList.remove("show");
+  if(e.key==="Enter"&&e.target.id==="spName")document.querySelector('[data-act="addSpell"]').click();
+});
+$("#helpBg").addEventListener("click",e=>{if(e.target.id==="helpBg")$("#helpBg").classList.remove("show")});
+$("#roll").addEventListener("click",()=>$("#roll").classList.remove("show"));
+function newChar(){const c=blank();chars.push(c);curId=c.id;save(c);tab="bearbeiten";render();window.scrollTo(0,0)}
+$("#newChar").addEventListener("click",()=>wNew());
+function sheet(title,text,btns){$("#helpT").textContent=title;$("#helpP").textContent=text;
+  $("#helpBtns").innerHTML=btns.map((b,i)=>`<button class="btn ${i?"":"gold"}" data-sb="${i}">${b[0]}</button>`).join("");
+  $("#helpBtns").onclick=e=>{const t=e.target.closest("[data-sb]");if(!t)return;$("#helpBg").classList.remove("show");btns[+t.dataset.sb][1]&&btns[+t.dataset.sb][1]()};
+  $("#helpBg").classList.add("show")}
+function levelUp(roll){const c=cur(),k=cls(c),m=mod(c.scores.con),r=roll?d(k.hd):k.hd/2+1,gain=Math.max(1,r+m)+(c.hpLvlBonus||0);
+  const oldP=profB(c),oldS=slotsMax(c).join();
+  update(x=>{x.level++;x.hpMax+=gain;x.hp+=gain});
+  const n=[];if(profB(c)>oldP)n.push("Übungsbonus jetzt "+sg(profB(c))+".");if(slotsMax(c).join()!==oldS)n.push("Neue Zauberplätze!");
+  if([4,8,12,16,19].includes(c.level))n.push("Attributswerterhöhung: Werte unter Bearbeiten anpassen.");
+  showRoll("+"+gain,"Stufe "+c.level+"!",(roll?"W"+k.hd+": "+r:"Durchschnitt "+r)+"  KON "+sg(m)+" = +"+gain+" TP",n.join(" ")||"Neue Merkmale und Zauber im Buch nachschauen.")}
+function exportChar(){const c=cur(),a=document.createElement("a");
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(c,null,1)],{type:"application/json"}));
+  a.download=(c.name||"charakter").replace(/[^\w-]+/g,"_")+".json";a.click()}
+const fileIn=document.createElement("input");fileIn.type="file";fileIn.accept=".json,application/json";
+fileIn.onchange=async()=>{try{const c=normalize(JSON.parse(await fileIn.files[0].text()));
+  c.id=chars.some(x=>x.id===c.id)||!c.id?uid():c.id;chars.push(c);curId=c.id;save(c);tab="kampf";render()}catch(e){alert("Die Datei konnte nicht gelesen werden.")}fileIn.value=""};
+
+/* ---------- Assistent: Daten ---------- */
+const SKN=Object.fromEntries(SKILLS.map(s=>[s[0],s[1]]));
+const ABDESC={str:"Kraft, Nahkampf, Tragen",dex:"Reflexe, Fernkampf, Schleichen, Rüstungsklasse",con:"Ausdauer und Trefferpunkte",int:"Wissen und Magier-Zauber",wis:"Wahrnehmung, Gespür, Kleriker- und Druidenzauber",cha:"Ausstrahlung, Überreden, Barden- und Hexenmeisterzauber"};
+const DV="Dunkelsicht: 18 m weit im Dunkeln sehen (nur Graustufen)",FB="Feenblut: Vorteil gegen Bezauberung, immun gegen magischen Schlaf";
+const RACES={
+ "Mensch":{d:"Vielseitig und überall zu finden. Passt zu jeder Klasse.",ab:{str:1,dex:1,con:1,int:1,wis:1,cha:1},sp:"9 m",lang:"Gemeinsprache, 1 weitere nach Wahl",f:["Vielseitig: +1 auf alle Attribute"]},
+ "Zwerg":{d:"Zäh, robust und stur. Stark als Kämpfer oder Kleriker.",ab:{con:2},sp:"7,5 m",lang:"Gemeinsprache, Zwergisch",f:[DV,"Zwergische Unverwüstlichkeit: Vorteil gegen Gift, Resistenz gegen Giftschaden","Schwere Rüstung verlangsamt dich nicht"],subs:{
+  "Hügelzwerg":{d:"Weise und besonders zäh.",ab:{wis:1},f:["Zwergische Zähigkeit: +1 TP pro Stufe"],hpLvl:1},
+  "Bergzwerg":{d:"Stark und an Rüstung gewöhnt.",ab:{str:2},f:["Rüstungsübung: leichte und mittelschwere Rüstung"]}}},
+ "Elf":{d:"Anmutig, magisch und scharfsinnig. Gut für Magier, Schurken, Waldläufer.",ab:{dex:2},sp:"9 m",lang:"Gemeinsprache, Elfisch",skills:["wahrnehmung"],f:[DV,"Geschärfte Sinne: geübt in Wahrnehmung",FB,"Trance: 4 Std. Meditation statt 8 Std. Schlaf"],subs:{
+  "Hochelf":{d:"Gelehrt und magisch begabt.",ab:{int:1},f:["Zaubertrick: 1 zusätzlicher Zaubertrick von der Magier-Liste (mit INT)","1 zusätzliche Sprache nach Wahl"]},
+  "Waldelf":{d:"Schnell und im Wald zu Hause.",ab:{wis:1},sp:"10,5 m",f:["Schnelle Füße: 10,5 m Bewegung","Maske der Wildnis: auch hinter Laub, Regen oder Nebel verstecken"]},
+  "Dunkelelf":{d:"Aus dem Unterreich, mit angeborener Magie.",ab:{cha:1},f:["Überlegene Dunkelsicht: 36 m","Lichtempfindlichkeit: Nachteil auf Angriffe und Wahrnehmung im direkten Sonnenlicht","Drow-Magie: Zaubertrick Tanzende Lichter"]}}},
+ "Halbling":{d:"Klein, flink und mit Glück gesegnet. Super als Schurke.",ab:{dex:2},sp:"7,5 m",lang:"Gemeinsprache, Halblingisch",f:["Glück: Bei einer gewürfelten 1 auf dem W20 darfst du neu würfeln","Tapferkeit: Vorteil gegen Verängstigung","Halblingsgewandtheit: Du kannst dich durch den Platz größerer Kreaturen bewegen"],subs:{
+  "Leichtfuß":{d:"Unauffällig und charmant.",ab:{cha:1},f:["Angeborene Verstohlenheit: Du kannst dich hinter größeren Kreaturen verstecken"]},
+  "Robuster Halbling":{d:"Besonders widerstandsfähig.",ab:{con:1},f:["Robuste Widerstandskraft: Vorteil gegen Gift, Resistenz gegen Giftschaden"]}}},
+ "Drachenblütiger":{d:"Stolze Drachennachfahren mit Odemwaffe. Gut für Paladine und Kämpfer.",ab:{str:2,cha:1},sp:"9 m",lang:"Gemeinsprache, Drakonisch",f:["Drachenabstammung: Wähle eine Drachenfarbe, sie bestimmt die Schadensart","Odemwaffe: 1× pro kurzer Rast 2W6 Schaden, Gegner würfeln einen Rettungswurf (SG 8 + KON + Übung)","Resistenz gegen die Schadensart deiner Abstammung"]},
+ "Gnom":{d:"Neugierig, erfinderisch und schlau. Gut für Magier.",ab:{int:2},sp:"7,5 m",lang:"Gemeinsprache, Gnomisch",f:[DV,"Gnomische Gerissenheit: Vorteil bei INT-, WEI- und CHA-Rettungswürfen gegen Magie"],subs:{
+  "Waldgnom":{d:"Naturverbunden, mit kleinen Illusionen.",ab:{dex:1},f:["Zaubertrick Kleine Illusion (mit INT)","Mit kleinen Tieren verständigen"]},
+  "Felsgnom":{d:"Tüftler und Erfinder.",ab:{con:1},f:["Handwerkskunde: Vorteil beim Wissen über magische und technische Gegenstände","Tüftler: kleine mechanische Spielereien bauen"]}}},
+ "Halbelf":{d:"Das Beste aus zwei Welten und sehr charmant. Super für Barden und Hexenmeister.",ab:{cha:2},free:1,sp:"9 m",lang:"Gemeinsprache, Elfisch, 1 weitere nach Wahl",freeSkills:2,f:[DV,FB,"Vielseitigkeit: 2 Fertigkeiten nach Wahl"]},
+ "Halbork":{d:"Stark und schwer zu Fall zu bringen. Gut für Barbaren und Kämpfer.",ab:{str:2,con:1},sp:"9 m",lang:"Gemeinsprache, Orkisch",skills:["einschuechtern"],f:[DV,"Bedrohlich: geübt in Einschüchtern","Unerbittliche Ausdauer: 1× pro langer Rast bei 0 TP stattdessen auf 1 TP bleiben","Wilde Angriffe: bei kritischem Treffer ein Schadenswürfel extra"]},
+ "Tiefling":{d:"Mit höllischem Erbe und etwas Magie. Gut für Hexenmeister und Zauberer.",ab:{int:1,cha:2},sp:"9 m",lang:"Gemeinsprache, Infernalisch",f:[DV,"Höllische Resistenz: Resistenz gegen Feuerschaden","Höllisches Vermächtnis: Zaubertrick Thaumaturgie"]}
+};
+const CI={
+ "Barbar":{d:"Wilder Krieger mit Kampfrausch. Viele TP, einfach zu spielen.",main:"STÄ",n:2,sk:["athletik","einschuechtern","tiere","naturkunde","ueberleben","wahrnehmung"],rec:["str","con","dex","wis","cha","int"],prof:"Rüstung: leichte, mittelschwere, Schilde. Waffen: einfache und Kriegswaffen.",f:["Kampfrausch: 2× pro langer Rast als Bonusaktion. Vorteil auf STÄ-Würfe, +2 Nahkampfschaden, nur halber Schaden durch Waffen","Ungerüstete Verteidigung: ohne Rüstung RK = 10 + GES + KON"]},
+ "Barde":{d:"Musiker und Geschichtenerzähler, unterstützt die Gruppe mit Magie. Viele Fertigkeiten.",main:"CHA",n:3,sk:"all",rec:["cha","dex","con","wis","int","str"],prof:"Rüstung: leichte. Waffen: einfache, Handarmbrüste, Langschwerter, Rapiere, Kurzschwerter. 3 Musikinstrumente.",f:["Zauberwirken mit Charisma","Bardische Inspiration: Als Bonusaktion gibst du einem Verbündeten einen W6, den er auf einen Wurf addieren darf (CHA-Mod mal pro langer Rast)"]},
+ "Druide":{d:"Hüter der Natur mit Heil- und Naturzaubern. Ab Stufe 2 Verwandlung in Tiere.",main:"WEI",n:2,sk:["arkane","tiere","motiv","heilkunde","naturkunde","wahrnehmung","religion","ueberleben"],rec:["wis","con","dex","int","cha","str"],prof:"Rüstung: leichte, mittelschwere, Schilde (kein Metall). Waffen: Knüppel, Dolche, Wurfpfeile, Speere, Kampfstab, Krummsäbel, Sichel, Schleuder. Kräuterkundeausrüstung.",f:["Druidisch: die Geheimsprache der Druiden","Zauberwirken mit Weisheit"]},
+ "Hexenmeister":{d:"Hat einen Pakt mit einem mächtigen Wesen. Wenige, aber starke Zauber.",main:"CHA",n:2,sk:["arkane","einschuechtern","geschichte","nachforschungen","naturkunde","religion","taeuschen"],rec:["cha","con","dex","wis","int","str"],prof:"Rüstung: leichte. Waffen: einfache.",f:["Übernatürlicher Schutzherr: Wähle mit dem Spielleiter, mit wem du den Pakt hast","Paktmagie: wenige Zauberplätze, die schon nach einer kurzen Rast zurückkommen"]},
+ "Kämpfer":{d:"Meister der Waffen und Rüstungen. Robust und am einfachsten zu spielen.",main:"STÄ oder GES",n:2,sk:["akrobatik","tiere","athletik","geschichte","motiv","einschuechtern","wahrnehmung","ueberleben"],rec:["str","con","dex","wis","cha","int"],prof:"Rüstung: alle, Schilde. Waffen: einfache und Kriegswaffen.",f:["Kampfstil: Wähle eine Spezialisierung, z. B. Verteidigung (+1 RK) oder Bogenschießen (+2 auf Fernkampfangriffe)","Zweite Luft: 1× pro kurzer Rast als Bonusaktion 1W10 + Stufe TP heilen"]},
+ "Kleriker":{d:"Diener einer Gottheit. Heilt, schützt und kämpft ordentlich mit.",main:"WEI",n:2,sk:["geschichte","motiv","heilkunde","ueberzeugen","religion"],rec:["wis","con","str","cha","dex","int"],prof:"Rüstung: leichte, mittelschwere, Schilde. Waffen: einfache.",f:["Zauberwirken mit Weisheit","Göttliche Domäne: Wähle mit dem Spielleiter, wofür deine Gottheit steht (z. B. Leben, Licht)"]},
+ "Magier":{d:"Gelehrter der Magie mit Zauberbuch. Sehr viele Zauber, aber wenig TP.",main:"INT",n:2,sk:["arkane","geschichte","motiv","nachforschungen","heilkunde","religion"],rec:["int","con","dex","wis","cha","str"],prof:"Rüstung: keine. Waffen: Dolche, Wurfpfeile, Schleudern, Kampfstäbe, leichte Armbrüste.",f:["Zauberwirken mit Intelligenz, deine Zauber stehen im Zauberbuch","Arkane Erholung: 1× pro Tag nach einer kurzen Rast Zauberplätze zurückholen (Gesamtgrad bis halbe Stufe, aufgerundet)"]},
+ "Mönch":{d:"Kampfkünstler ohne Rüstung, schnell und mit vielen Schlägen.",main:"GES und WEI",n:2,sk:["akrobatik","athletik","geschichte","motiv","religion","heimlichkeit"],rec:["dex","wis","con","str","int","cha"],prof:"Rüstung: keine. Waffen: einfache, Kurzschwerter. 1 Handwerkszeug oder Instrument.",f:["Ungerüstete Verteidigung: ohne Rüstung RK = 10 + GES + WEI","Kampfkunst: Waffenlose Schläge machen 1W4 Schaden, nach einem Angriff darfst du als Bonusaktion noch einmal waffenlos zuschlagen"]},
+ "Paladin":{d:"Heiliger Ritter mit Eid. Starker Nahkämpfer, der auch heilt.",main:"STÄ und CHA",n:2,sk:["athletik","motiv","einschuechtern","heilkunde","ueberzeugen","religion"],rec:["str","cha","con","wis","dex","int"],prof:"Rüstung: alle, Schilde. Waffen: einfache und Kriegswaffen.",f:["Göttliches Gespür: Böses Übernatürliches in der Nähe spüren (1 + CHA-Mod mal pro langer Rast)","Handauflegen: Vorrat von 5 × Stufe TP, mit dem du durch Berührung heilst"]},
+ "Schurke":{d:"Geschickter Dieb und Späher. Schleichen, Schlösser knacken, hinterhältig angreifen.",main:"GES",n:4,sk:["akrobatik","athletik","taeuschen","motiv","einschuechtern","nachforschungen","wahrnehmung","auftreten","ueberzeugen","fingerfertigkeit","heimlichkeit"],rec:["dex","con","wis","cha","int","str"],prof:"Rüstung: leichte. Waffen: einfache, Handarmbrüste, Langschwerter, Rapiere, Kurzschwerter. Diebeswerkzeug.",f:["Expertise: doppelter Übungsbonus bei 2 Fertigkeiten (oder Diebeswerkzeug)","Hinterhältiger Angriff: 1× pro Zug +1W6 Schaden, wenn du Vorteil hast oder ein Verbündeter neben dem Ziel steht","Diebessprache: geheime Zeichen und Sprache der Diebe"]},
+ "Waldläufer":{d:"Jäger und Fährtenleser der Wildnis, stark mit dem Bogen.",main:"GES und WEI",n:3,sk:["tiere","athletik","motiv","nachforschungen","naturkunde","wahrnehmung","heimlichkeit","ueberleben"],rec:["dex","wis","con","str","int","cha"],prof:"Rüstung: leichte, mittelschwere, Schilde. Waffen: einfache und Kriegswaffen.",f:["Bevorzugter Feind: Wähle eine Art von Gegner, die du besonders gut kennst","Erfahrener Erkunder: Wähle ein Gelände, in dem du dich besonders gut auskennst"]},
+ "Zauberer":{d:"Magie liegt dir im Blut. Weniger Zauber als der Magier, dafür kannst du sie verändern.",main:"CHA",n:2,sk:["arkane","taeuschen","motiv","einschuechtern","ueberzeugen","religion"],rec:["cha","con","dex","wis","int","str"],prof:"Rüstung: keine. Waffen: Dolche, Wurfpfeile, Schleudern, Kampfstäbe, leichte Armbrüste.",f:["Zauberwirken mit Charisma","Zauberursprung: Wähle mit dem Spielleiter, woher deine Magie stammt (z. B. Drachenblut)"]}
+};
+const BG={
+ "Akolyth":{d:"Du hast im Tempel gedient.",sk:["motiv","religion"],lang:2},
+ "Adeliger":{d:"Du stammst aus einem reichen, einflussreichen Haus.",sk:["geschichte","ueberzeugen"],lang:1,tools:"1 Spiel"},
+ "Außenseiter":{d:"Du bist fern der Städte in der Wildnis aufgewachsen.",sk:["athletik","ueberleben"],lang:1,tools:"1 Musikinstrument"},
+ "Einsiedler":{d:"Du hast lange zurückgezogen gelebt.",sk:["heilkunde","religion"],lang:1,tools:"Kräuterkundeausrüstung"},
+ "Gildenhandwerker":{d:"Du bist Mitglied einer Handwerksgilde.",sk:["motiv","ueberzeugen"],lang:1,tools:"1 Handwerkszeug"},
+ "Held des Volkes":{d:"Einfache Leute sehen in dir ihren Helden.",sk:["tiere","ueberleben"],tools:"1 Handwerkszeug, Landfahrzeuge"},
+ "Krimineller":{d:"Du hast dein Geld außerhalb des Gesetzes verdient.",sk:["taeuschen","heimlichkeit"],tools:"Diebeswerkzeug, 1 Spiel"},
+ "Scharlatan":{d:"Du bist Betrüger und Hochstapler.",sk:["taeuschen","fingerfertigkeit"],tools:"Verkleidungs- und Fälscherausrüstung"},
+ "Seefahrer":{d:"Du bist jahrelang zur See gefahren.",sk:["athletik","wahrnehmung"],tools:"Navigatorwerkzeug, Wasserfahrzeuge"},
+ "Soldat":{d:"Du hast in einer Armee gedient.",sk:["athletik","einschuechtern"],tools:"1 Spiel, Landfahrzeuge"},
+ "Straßenkind":{d:"Du bist arm auf der Straße aufgewachsen.",sk:["fingerfertigkeit","heimlichkeit"],tools:"Verkleidungsausrüstung, Diebeswerkzeug"},
+ "Unterhaltungskünstler":{d:"Du trittst vor Publikum auf.",sk:["akrobatik","auftreten"],tools:"Verkleidungsausrüstung, 1 Musikinstrument"},
+ "Weiser":{d:"Du hast dein Leben dem Studium gewidmet.",sk:["arkane","geschichte"],lang:2}
+};
+const WSTEPS=["Name","Volk","Klasse","Attribute","Hintergrund","Fertigkeiten","Fertig"];
+const WEXPL=["Wir bauen deinen Charakter Schritt für Schritt. Du musst nichts auswendig wissen: Die Seite zeigt dir nur, was erlaubt ist, und rechnet alles aus.",
+ "Dein Volk ist die Abstammung deines Charakters. Es gibt Boni auf Attribute und angeborene Fähigkeiten. Es gibt keine falsche Wahl, nimm, was dir gefällt.",
+ "Die Klasse ist dein Beruf als Abenteurer. Sie bestimmt, was du im Kampf und außerhalb kannst und wie viel du aushältst.",
+ "Attribute beschreiben, wie stark, geschickt oder klug dein Charakter ist. Aus jedem Wert wird ein Modifikator (z. B. 14 → +2), den du später beim Würfeln addierst.",
+ "Der Hintergrund ist, was dein Charakter vor dem Abenteuer gemacht hat. Er gibt dir zwei Fertigkeiten und Ideen, wie du die Figur spielst.",
+ "Fertigkeiten sind Dinge, in denen dein Charakter geübt ist. Würfelst du darauf, bekommst du deinen Übungsbonus (+2) dazu.",
+ "Fast geschafft! Prüf kurz alles. Ausrüstung, Angriffe und Zauber trägst du danach unter „Bearbeiten“ und „Zauber“ ein."];
+
+/* ---------- Assistent: Logik ---------- */
+let W=null;
+function wNew(){W={step:0,name:"",player:"",race:"",sub:"",cls:"",method:"standard",base:{str:"",dex:"",con:"",int:"",wis:"",cha:""},plus:[],bg:"",cSk:[],fSk:[],exp:[]};render();scrollTo(0,0)}
+const wR=()=>RACES[W.race],wS=()=>{const r=wR();return r&&r.subs?r.subs[W.sub]:null};
+const wBonus=a=>{const r=wR();return r?(r.ab[a]||0)+(((wS()||{}).ab||{})[a]||0)+(W.plus.includes(a)?1:0):0};
+const wScore=a=>(parseInt(W.base[a])||0)+wBonus(a);
+const wFixed=()=>[...new Set([...((wR()||{}).skills||[]),...((BG[W.bg]||{}).sk||[])])];
+const wFreeN=()=>{const r=wR()||{},b=(BG[W.bg]||{}).sk||[];return (r.freeSkills||0)+(r.skills||[]).filter(s=>b.includes(s)).length};
+const wClassList=()=>{const ci=CI[W.cls];return (ci.sk==="all"?SKILLS.map(s=>s[0]):ci.sk).filter(s=>!wFixed().includes(s))};
+const wClassN=()=>Math.min(CI[W.cls].n,wClassList().length);
+const bonusTxt=ab=>{const e=Object.entries(ab);return e.length===6?"alle Attribute +1":e.map(([a,v])=>AB[a][2]+" +"+v).join(", ")};
+function wOk(){
+  switch(W.step){
+    case 0:return W.name.trim()?"":"Gib deinem Helden einen Namen.";
+    case 1:return !W.race?"Wähle ein Volk.":(wR().subs&&!W.sub)?"Wähle noch die Unterart.":"";
+    case 2:return W.cls?"":"Wähle eine Klasse.";
+    case 3:{const v=ABIL.map(([a])=>parseInt(W.base[a]));
+      if(v.some(x=>!x))return "Trag für jedes Attribut einen Wert ein.";
+      if(W.method==="standard"&&v.slice().sort((a,b)=>b-a).join()!=="15,14,13,12,10,8")return "Jeder Standardwert darf nur einmal vorkommen.";
+      if(W.method==="eigen"&&v.some(x=>x<3||x>18))return "Gewürfelte Werte liegen zwischen 3 und 18.";
+      if(W.race==="Halbelf"&&W.plus.length!==2)return "Wähle als Halbelf noch zwei Attribute für +1.";return ""}
+    case 4:return W.bg?"":"Wähle einen Hintergrund.";
+    case 5:if(W.cSk.length<wClassN())return "Wähle noch "+(wClassN()-W.cSk.length)+" Fertigkeit(en) deiner Klasse.";
+      if(W.fSk.length<wFreeN())return "Wähle noch "+(wFreeN()-W.fSk.length)+" freie Fertigkeit(en).";
+      if(W.cls==="Schurke"&&W.exp.length<2)return "Wähle noch "+(2-W.exp.length)+"× Expertise.";return "";
+  }return "";
+}
+const card=(attr,key,on,title,text,small)=>`<button class="wcard ${on?"on":""}" ${attr}="${esc(key)}"><b>${esc(title)}</b><span>${esc(text)}</span>${small?`<small>${esc(small)}</small>`:""}</button>`;
+const ul=a=>`<ul class="tr">${a.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`;
+const skTog=(attr,k,on,dis)=>`<div class="skedit"><span>${SKN[k]} <span class="muted small">${AB[SKILLS.find(s=>s[0]===k)[2]][2]}</span></span><span></span><button class="tog ${on?"on":""}" ${attr}="${k}" ${dis&&!on?"disabled":""}>${on?"gewählt":"wählen"}</button></div>`;
+const WV=[
+ ()=>`<label class="f"><span>Name deines Charakters</span><input class="in" data-wtext="name" value="${esc(W.name)}" placeholder="z. B. Elara Mondschein"></label>
+  <label class="f"><span>Dein eigener Name (Spieler)</span><input class="in" data-wtext="player" value="${esc(W.player)}"></label>
+  <p class="small muted">Beides kannst du später jederzeit ändern.</p><button class="linkbtn" data-w="manual">Ohne Assistent selbst eintragen</button>`,
+ ()=>{const r=wR();let h=`<div class="wcards">${Object.entries(RACES).map(([k,v])=>card("data-wrace",k,W.race===k,k,v.d,bonusTxt(v.ab)+(v.free?", +1 auf zwei weitere":"")+", Bewegung "+v.sp)).join("")}</div>`;
+   if(r&&r.subs)h+=`<h2 class="wh">Unterart wählen</h2><div class="wcards">${Object.entries(r.subs).map(([k,v])=>card("data-wsub",k,W.sub===k,k,v.d,bonusTxt(v.ab))).join("")}</div>`;
+   if(r)h+=`<div class="hint"><b>Das kannst du als ${esc(W.sub||W.race)}:</b>${ul([...r.f,...((wS()||{}).f||[])])}<p class="small" style="margin:6px 0 0">Sprachen: ${esc(r.lang)}</p></div>`;return h},
+ ()=>{let h=`<div class="wcards">${Object.entries(CI).map(([k,v])=>card("data-wcls",k,W.cls===k,k,v.d,"Wichtigstes Attribut: "+v.main+", Trefferwürfel W"+CLASSES[k].hd)).join("")}</div>`;
+   if(W.cls){const v=CI[W.cls];h+=`<div class="hint"><b>Das kannst du als ${esc(W.cls)} auf Stufe 1:</b>${ul(v.f)}<p class="small" style="margin:6px 0 0">Rettungswürfe: ${CLASSES[W.cls].saves.map(s=>AB[s][1]).join(" und ")}<br>${esc(v.prof)}</p></div>`}return h},
+ ()=>{const std=W.method==="standard",used=Object.values(W.base).map(Number);
+   let h=`<div class="btnrow" style="margin-top:0"><button class="chip ${std?"on":""}" data-wmethod="standard">Standardwerte</button><button class="chip ${std?"":"on"}" data-wmethod="eigen">Gewürfelte Werte</button></div>
+   <p class="small muted">${std?"Verteile die Werte 15, 14, 13, 12, 10 und 8. Jeder kommt genau einmal vor. Den höchsten Wert aufs wichtigste Attribut deiner Klasse.":"Habt ihr gewürfelt (4W6, den niedrigsten Würfel weglassen)? Dann trag die Ergebnisse hier ein."}</p>
+   ${std&&W.cls?`<button class="btn gold" data-w="rec">Empfehlung für ${esc(W.cls)} übernehmen</button>`:""}<div style="margin-top:8px">`;
+   h+=ABIL.map(([a,l])=>{const b=wBonus(a),s=wScore(a),has=W.base[a]!=="";
+     const inp=std?`<select class="in" data-wbase="${a}"><option value="">–</option>${[15,14,13,12,10,8].map(v=>`<option value="${v}" ${+W.base[a]===v?"selected":""}>${v}${+W.base[a]!==v&&used.includes(v)?" ✓":""}</option>`).join("")}</select>`
+       :`<input class="in" type="number" inputmode="numeric" min="3" max="18" data-wbase="${a}" value="${esc(W.base[a])}">`;
+     return `<div class="wab"><div><b>${l}</b><small>${ABDESC[a]}</small></div>${inp}<div style="text-align:right">${b?`<small>Volk +${b}</small>`:""}<b>${has?s+" ("+sg(mod(s))+")":"–"}</b></div></div>`}).join("");
+   h+=`</div>`;
+   if(W.race==="Halbelf")h+=`<div class="hint"><b>Halbelf:</b> Wähle zwei Attribute (nicht Charisma), die +1 bekommen.<div class="btnrow">${ABIL.filter(x=>x[0]!=="cha").map(([a,,s])=>`<button class="chip ${W.plus.includes(a)?"on":""}" data-wplus="${a}">${s}</button>`).join("")}</div></div>`;
+   return h},
+ ()=>`<div class="wcards">${Object.entries(BG).map(([k,v])=>card("data-wbg",k,W.bg===k,k,v.d,"Fertigkeiten: "+v.sk.map(s=>SKN[s]).join(", ")+(v.lang?", "+v.lang+" Sprache(n)":"")+(v.tools?", "+v.tools:""))).join("")}</div>`,
+ ()=>{const fx=wFixed(),n=wClassN(),fn=wFreeN();
+   let h=`<div class="card"><h2>Schon geübt</h2><p class="small muted">Durch Volk und Hintergrund:</p><div class="btnrow">${fx.map(s=>`<span class="chip on">${SKN[s]}</span>`).join("")||`<span class="muted">keine</span>`}</div></div>`;
+   h+=`<div class="card"><h2>Von deiner Klasse (noch ${n-W.cSk.length})</h2><p class="small muted">Als ${esc(W.cls)} darfst du ${n} aus dieser Liste wählen.</p>${wClassList().map(s=>skTog("data-wcsk",s,W.cSk.includes(s),W.cSk.length>=n)).join("")}</div>`;
+   if(fn){const pool=SKILLS.map(s=>s[0]).filter(s=>!fx.includes(s)&&!W.cSk.includes(s));
+     h+=`<div class="card"><h2>Frei wählbar (noch ${fn-W.fSk.length})</h2><p class="small muted">${W.race==="Halbelf"?"Als Halbelf bekommst du 2 Fertigkeiten nach Wahl. ":""}Wenn Volk und Hintergrund dieselbe Fertigkeit geben, darfst du dafür eine andere nehmen.</p>${pool.map(s=>skTog("data-wfsk",s,W.fSk.includes(s),W.fSk.length>=fn)).join("")}</div>`}
+   if(W.cls==="Schurke"){const pool=[...fx,...W.cSk,...W.fSk,"diebeswerkzeug"];
+     h+=`<div class="card"><h2>Expertise (noch ${2-W.exp.length})</h2><p class="small muted">Wähle 2 Dinge, in denen du richtig gut bist: Dort zählt dein Übungsbonus doppelt.</p>${pool.map(s=>`<div class="skedit"><span>${s==="diebeswerkzeug"?"Diebeswerkzeug (Schlösser, Fallen)":SKN[s]}</span><span></span><button class="tog ${W.exp.includes(s)?"on":""}" data-wexp="${s}" ${W.exp.length>=2&&!W.exp.includes(s)?"disabled":""}>${W.exp.includes(s)?"gewählt":"wählen"}</button></div>`).join("")}</div>`}
+   return h},
+ ()=>{const c=wBuild();return `<div class="card"><h2>${esc(c.name)}</h2><p class="muted" style="margin:0">Stufe 1 ${esc(c.cls)}, ${esc(c.race)}, ${esc(c.background)}</p>
+   <div class="stats" style="margin-top:12px"><div class="stat"><b>${c.hpMax}</b><span>TP</span></div><div class="stat"><b>${acVal(c)}</b><span>RK</span></div><div class="stat"><b>${sg(mod(c.scores.dex))}</b><span>Initiative</span></div><div class="stat"><b style="font-size:22px;line-height:1.4">${esc(c.speed)}</b><span>Bewegung</span></div></div>
+   <div class="grid3" style="margin-top:12px">${ABIL.map(([a,l])=>`<div class="stat"><b>${sg(mod(c.scores[a]))}</b><span>${l} ${c.scores[a]}</span></div>`).join("")}</div>
+   <p class="small" style="margin-top:12px"><b>Geübt in:</b> ${c.skills.map(s=>SKN[s]+(c.expertise.includes(s)?" (Expertise)":"")).join(", ")}</p></div>`}
+];
+function wBuild(){
+  const r=wR(),s=wS()||{},ci=CI[W.cls],b=BG[W.bg],c=blank();
+  ABIL.forEach(([a])=>c.scores[a]=wScore(a));
+  Object.assign(c,{name:W.name.trim(),player:W.player.trim(),cls:W.cls,race:W.sub||W.race,background:W.bg,saves:[...CLASSES[W.cls].saves],
+    skills:[...new Set([...wFixed(),...W.cSk,...W.fSk])],expertise:W.exp.filter(x=>x!=="diebeswerkzeug"),speed:s.sp||r.sp,hpLvlBonus:s.hpLvl||0,
+    armor:W.cls==="Barbar"?"barb":W.cls==="Mönch"?"monk":"none"});
+  c.hpMax=c.hp=CLASSES[W.cls].hd+mod(c.scores.con)+c.hpLvlBonus;
+  c.features=[...r.f,...(s.f||[]),...ci.f,...(W.exp.includes("diebeswerkzeug")?["Diebeswerkzeug mit Expertise: GES + doppelter Übungsbonus"]:[])].join("\n");
+  c.languages=r.lang+(b.lang?`, ${b.lang} weitere nach Wahl (Hintergrund)`:"")+"\n\n"+ci.prof+(b.tools?"\nWerkzeug (Hintergrund): "+b.tools:"");
+  return c;
+}
+function wRender(){
+  const st=W.step,err=wOk();
+  $("#hero").innerHTML=`<p class="small muted" style="margin:0">Schritt ${st+1} von ${WSTEPS.length}</p><div class="wprog"><i style="width:${(st+1)/WSTEPS.length*100}%"></i></div><h1>${WSTEPS[st]}</h1>`;
+  $("#main").innerHTML=`<div class="hint">${WEXPL[st]}</div>`+WV[st]()+(err?`<p class="small muted" id="wErr" style="margin-top:14px">${err}</p>`:"");
+  $("#nav").innerHTML=`<div class="wnav"><button data-w="${st?"back":"cancel"}">${st?"Zurück":"Abbrechen"}</button>${st<6?`<button class="go" data-w="next" ${err?"disabled":""}>Weiter</button>`:`<button class="go" data-w="finish">Charakter erstellen</button>`}</div>`;
+}
+document.addEventListener("click",e=>{
+  const t=e.target.closest("button");if(!t||!W)return;const D=t.dataset;
+  if(D.w){const a=D.w;
+    if(a==="next"&&!wOk())W.step++;
+    if(a==="back")W.step--;
+    if(a==="cancel")W=null;
+    if(a==="manual"){W=null;const c=blank();chars.push(c);curId=c.id;save(c);tab="bearbeiten"}
+    if(a==="rec"){const order=CI[W.cls].rec;[15,14,13,12,10,8].forEach((v,i)=>W.base[order[i]]=String(v))}
+    if(a==="finish"){const c=wBuild();chars.push(c);curId=c.id;save(c);W=null;tab="kampf";render();scrollTo(0,0);
+      return sheet("Willkommen, "+c.name+"!","Dein Charakter ist fertig. Trag jetzt unter „Bearbeiten“ deine Waffen als Angriffe ein und unter „Notizen“ deine Ausrüstung."+(isCaster(c)?" Deine Zauber kommen in den Tab „Zauber“.":""),[["Los geht’s"]])}
+    render();if(a!=="rec")scrollTo(0,0);return}
+  if(D.wrace){if(W.race!==D.wrace){W.race=D.wrace;W.sub="";W.plus=[];W.cSk=[];W.fSk=[];W.exp=[]}render();return}
+  if(D.wsub){W.sub=D.wsub;render();return}
+  if(D.wcls){if(W.cls!==D.wcls){W.cls=D.wcls;W.cSk=[];W.exp=[]}render();return}
+  if(D.wbg){if(W.bg!==D.wbg){W.bg=D.wbg;W.cSk=[];W.fSk=[];W.exp=[]}render();return}
+  if(D.wmethod){if(W.method!==D.wmethod){W.method=D.wmethod;ABIL.forEach(([a])=>W.base[a]="")}render();return}
+  if(D.wplus){toggle(W.plus,D.wplus);if(W.plus.length>2)W.plus.shift();render();return}
+  if(D.wcsk){toggle(W.cSk,D.wcsk);W.exp=W.exp.filter(x=>x==="diebeswerkzeug"||wFixed().includes(x)||W.cSk.includes(x)||W.fSk.includes(x));render();return}
+  if(D.wfsk){toggle(W.fSk,D.wfsk);W.exp=W.exp.filter(x=>x==="diebeswerkzeug"||wFixed().includes(x)||W.cSk.includes(x)||W.fSk.includes(x));render();return}
+  if(D.wexp){toggle(W.exp,D.wexp);render();return}
+},true);
+document.addEventListener("change",e=>{if(W&&e.target.dataset.wbase){W.base[e.target.dataset.wbase]=e.target.value;render()}});
+document.addEventListener("input",e=>{if(W&&e.target.dataset.wtext){W[e.target.dataset.wtext]=e.target.value;const n=document.querySelector('[data-w="next"]'),er=wOk();if(n)n.disabled=!!er;const el=$("#wErr");if(el)el.textContent=er}});
+
+/* ---------- Start ---------- */
+loadLocal();chars=chars.map(normalize);render();
+</script>
+</body>
+</html>
