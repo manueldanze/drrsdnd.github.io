@@ -176,6 +176,11 @@ details{border-bottom:1px solid var(--line);padding:4px 0}
 details:last-child{border-bottom:0}
 summary{cursor:pointer;padding:9px 0;font-weight:700;font-size:17px}
 details div{padding:0 0 12px}
+/* Würfelsymbol */
+:root{--dice:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.2' stroke-linejoin='round'%3E%3Cpath d='M12 2l9 5v10l-9 5-9-5V7z'/%3E%3Cpath d='M12 7l5 8H7z'/%3E%3C/svg%3E")}
+.row[data-roll] .val::after,.stat[data-roll] b::after,.abil .m::after,[data-atk]::after,[data-dmg]::after,.dice button::after,[data-act="deathroll"]::after,[data-act="hd"]::after,[data-w="rollabil"]::after{
+  content:"";display:inline-block;width:14px;height:14px;margin-left:5px;vertical-align:-1px;background:currentColor;opacity:.6;-webkit-mask:var(--dice) center/contain no-repeat;mask:var(--dice) center/contain no-repeat}
+.abil .m::after{width:16px;height:16px;vertical-align:2px}
 /* Navigation */
 nav{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px);z-index:10}
 nav .in2{max-width:720px;margin:0 auto;display:flex}
@@ -196,6 +201,8 @@ nav button.on{color:var(--ink);font-weight:700;border-top-color:var(--gold)}
 .roll .t{font-weight:700;font-size:17px}
 .roll .b{font-size:14px;opacity:.8}
 .roll .note{font-size:14px;font-weight:700;margin-top:2px}
+.roll::before{content:"";position:absolute;top:6px;left:50%;width:36px;height:4px;margin-left:-18px;border-radius:2px;background:currentColor;opacity:.25}
+.roll{touch-action:none}
 
 /* Hilfe */
 .sheetbg{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:30;display:none;align-items:flex-end;justify-content:center}
@@ -348,7 +355,7 @@ function save(c){c.updated=Date.now();saveLocal()}
 let rollTimer;
 function showRoll(num,title,breakdown,note,cls2){
   const r=$("#roll");$("#rollNum").textContent=num;$("#rollT").textContent=title;$("#rollB").textContent=breakdown;$("#rollN").textContent=note||"";
-  r.className="roll show spin "+(cls2||"");clearTimeout(rollTimer);rollTimer=setTimeout(()=>r.classList.remove("show"),5000);
+  r.style.transform=r.style.opacity=r.style.transition="";r.className="roll show spin "+(cls2||"");clearTimeout(rollTimer);rollTimer=setTimeout(()=>r.classList.remove("show"),5000);
 }
 function rollD20(title,parts){
   const a=d(20),b=d(20);let used=a,dieTxt="W20: "+a;
@@ -622,7 +629,13 @@ document.addEventListener("keydown",e=>{
   if(e.key==="Enter"&&e.target.id==="spName")document.querySelector('[data-act="addSpell"]').click();
 });
 $("#helpBg").addEventListener("click",e=>{if(e.target.id==="helpBg")$("#helpBg").classList.remove("show")});
-$("#roll").addEventListener("click",()=>$("#roll").classList.remove("show"));
+(()=>{const R=$("#roll");let sx=0,sy=0,drag=false;
+  const hide=()=>{R.style.transition="opacity .15s";R.style.opacity="0";setTimeout(()=>{R.classList.remove("show");R.style.transform=R.style.opacity=R.style.transition=""},160)};
+  R.addEventListener("click",hide);
+  R.addEventListener("touchstart",e=>{const t=e.touches[0];sx=t.clientX;sy=t.clientY;drag=true;R.style.transition="none";clearTimeout(rollTimer)},{passive:true});
+  R.addEventListener("touchmove",e=>{if(!drag)return;const t=e.touches[0],dx=t.clientX-sx,dy=Math.max(0,t.clientY-sy);R.style.transform=`translate(calc(-50% + ${dx}px),${dy}px)`;R.style.opacity=String(Math.max(.2,1-Math.max(Math.abs(dx),dy)/220))},{passive:true});
+  R.addEventListener("touchend",e=>{drag=false;const t=e.changedTouches[0],dx=t.clientX-sx,dy=t.clientY-sy;
+    if(Math.abs(dx)>60||dy>40)return hide();R.style.transition="";R.style.transform=R.style.opacity="";rollTimer=setTimeout(hide,3000)});})();
 function newChar(){const c=blank();chars.push(c);curId=c.id;save(c);tab="bearbeiten";render();window.scrollTo(0,0)}
 $("#newChar").addEventListener("click",()=>wNew());
 function sheet(title,text,btns){$("#helpT").textContent=title;$("#helpP").textContent=text;
@@ -708,7 +721,7 @@ const WEXPL=["Wir bauen deinen Charakter Schritt für Schritt. Du musst nichts a
 
 /* ---------- Assistent: Logik ---------- */
 let W=null;
-function wNew(){W={step:0,name:"",player:"",race:"",sub:"",cls:"",method:"standard",base:{str:"",dex:"",con:"",int:"",wis:"",cha:""},plus:[],bg:"",cSk:[],fSk:[],exp:[],eq:[],cant:[],sp:[],hc:""};render();scrollTo(0,0)}
+function wNew(){W={step:0,name:"",player:"",race:"",sub:"",cls:"",method:"standard",base:{str:"",dex:"",con:"",int:"",wis:"",cha:""},plus:[],bg:"",cSk:[],fSk:[],exp:[],eq:[],cant:[],sp:[],hc:"",rolls:null,rd:[],ri:{}};render();scrollTo(0,0)}
 const wR=()=>RACES[W.race],wS=()=>{const r=wR();return r&&r.subs?r.subs[W.sub]:null};
 const wBonus=a=>{const r=wR();return r?(r.ab[a]||0)+(((wS()||{}).ab||{})[a]||0)+(W.plus.includes(a)?1:0):0};
 const wScore=a=>(parseInt(W.base[a])||0)+wBonus(a);
@@ -726,6 +739,7 @@ function wOk(){
       if(v.some(x=>!x))return "Trag für jedes Attribut einen Wert ein.";
       if(W.method==="standard"&&v.slice().sort((a,b)=>b-a).join()!=="15,14,13,12,10,8")return "Jeder Standardwert darf nur einmal vorkommen.";
       if(W.method==="eigen"&&v.some(x=>x<3||x>18))return "Gewürfelte Werte liegen zwischen 3 und 18.";
+      if(W.method==="eigen"&&W.rolls&&new Set(ABIL.map(([a])=>W.ri[a])).size<6)return "Jeder gewürfelte Wert darf nur einmal vorkommen.";
       if(W.race==="Halbelf"&&W.plus.length!==2)return "Wähle als Halbelf noch zwei Attribute für +1.";return ""}
     case 4:return W.bg?"":"Wähle einen Hintergrund.";
     case 5:if(W.cSk.length<wClassN())return "Wähle noch "+(wClassN()-W.cSk.length)+" Fertigkeit(en) deiner Klasse.";
@@ -749,10 +763,11 @@ const WV=[
    if(W.cls){const v=CI[W.cls];h+=`<div class="hint"><b>Das kannst du als ${esc(W.cls)} auf Stufe 1:</b>${ul(v.f)}<p class="small" style="margin:6px 0 0">Rettungswürfe: ${CLASSES[W.cls].saves.map(s=>AB[s][1]).join(" und ")}<br>${esc(v.prof)}</p></div>`}return h},
  ()=>{const std=W.method==="standard",used=Object.values(W.base).map(Number);
    let h=`<div class="btnrow" style="margin-top:0"><button class="chip ${std?"on":""}" data-wmethod="standard">Standardwerte</button><button class="chip ${std?"":"on"}" data-wmethod="eigen">Gewürfelte Werte</button></div>
-   <p class="small muted">${std?"Verteile die Werte 15, 14, 13, 12, 10 und 8. Jeder kommt genau einmal vor. Den höchsten Wert aufs wichtigste Attribut deiner Klasse.":"Habt ihr gewürfelt (4W6, den niedrigsten Würfel weglassen)? Dann trag die Ergebnisse hier ein."}</p>
-   ${std&&W.cls?`<button class="btn gold" data-w="rec">Empfehlung für ${esc(W.cls)} übernehmen</button>`:""}<div style="margin-top:8px">`;
+   <p class="small muted">${std?"Verteile die Werte 15, 14, 13, 12, 10 und 8. Jeder kommt genau einmal vor. Den höchsten Wert aufs wichtigste Attribut deiner Klasse.":W.rolls?"Verteile deine gewürfelten Werte auf die Attribute. Jeder Wert kommt genau einmal vor.":"Tippe auf „Werte auswürfeln“: Die Seite würfelt 6-mal 4W6 und lässt jeweils den niedrigsten Würfel weg. Mit echten Würfeln trägst du die Ergebnisse einfach unten ein."}</p>
+   ${!std?`<div class="btnrow" style="margin:0 0 8px"><button class="btn gold" data-w="rollabil">${W.rolls?"Nochmal würfeln":"Werte auswürfeln"}</button></div>${W.rolls?`<div class="btnrow" style="margin:0 0 8px">${W.rolls.map((v,i)=>`<span class="chip"><b>${v}</b> <small class="muted">${W.rd[i].map((x,j)=>j===3?`<s>${x}</s>`:x).join(" ")}</small></span>`).join("")}</div>`:""}`:""}${(std||W.rolls)&&W.cls?`<button class="btn gold" data-w="rec">Empfehlung für ${esc(W.cls)} übernehmen</button>`:""}<div style="margin-top:8px">`;
    h+=ABIL.map(([a,l])=>{const b=wBonus(a),s=wScore(a),has=W.base[a]!=="";
      const inp=std?`<select class="in" data-wbase="${a}"><option value="">–</option>${[15,14,13,12,10,8].map(v=>`<option value="${v}" ${+W.base[a]===v?"selected":""}>${v}${+W.base[a]!==v&&used.includes(v)?" ✓":""}</option>`).join("")}</select>`
+       :W.rolls?`<select class="in" data-wri="${a}"><option value="">–</option>${W.rolls.map((v,i)=>`<option value="${i}" ${W.ri[a]===String(i)?"selected":""}>${v}${W.ri[a]!==String(i)&&Object.values(W.ri).includes(String(i))?" ✓":""}</option>`).join("")}</select>`
        :`<input class="in" type="number" inputmode="numeric" min="3" max="18" data-wbase="${a}" value="${esc(W.base[a])}">`;
      return `<div class="wab"><div><b>${l}</b><small>${ABDESC[a]}</small></div>${inp}<div style="text-align:right">${b?`<small>Volk +${b}</small>`:""}<b>${has?s+" ("+sg(mod(s))+")":"–"}</b></div></div>`}).join("");
    h+=`</div>`;
@@ -797,10 +812,13 @@ document.addEventListener("click",e=>{
     if(a==="back"){W.step--;if(wSkip())W.step--}
     if(a==="cancel")W=null;
     if(a==="manual"){W=null;const c=blank();chars.push(c);curId=c.id;save(c);tab="bearbeiten"}
-    if(a==="rec"){const order=CI[W.cls].rec;[15,14,13,12,10,8].forEach((v,i)=>W.base[order[i]]=String(v))}
+    if(a==="rec"){const order=CI[W.cls].rec;if(W.method==="standard")[15,14,13,12,10,8].forEach((v,i)=>W.base[order[i]]=String(v));
+      else{const ix=W.rolls.map((v,i)=>i).sort((x,y)=>W.rolls[y]-W.rolls[x]);W.ri={};ix.forEach((r,i)=>{W.ri[order[i]]=String(r);W.base[order[i]]=String(W.rolls[r])})}}
+    if(a==="rollabil"){W.rd=Array.from({length:6},()=>Array.from({length:4},()=>d(6)).sort((x,y)=>y-x));W.rolls=W.rd.map(r=>r[0]+r[1]+r[2]);W.ri={};ABIL.forEach(([x])=>W.base[x]="");
+      showRoll(W.rolls.reduce((x,y)=>x+y,0),"Werte gewürfelt",W.rolls.join(", "),"Jetzt auf die Attribute verteilen.")}
     if(a==="finish"){const c=wBuild();chars.push(c);curId=c.id;save(c);W=null;tab="kampf";if(needCatch(c)){LU={catch:true,to:1,step:0,hp:"avg",sub:"",pk:{},asi:{m:"two",a:[]},spc:[],sps:[],swap:""};render();scrollTo(0,0);return}render();scrollTo(0,0);
       return sheet("Willkommen, "+c.name+"!","Dein Charakter ist fertig! Im Tab „Kampf“ findest du TP und Angriffe, unter „Werte“ deine Würfe"+(isCaster(c)?", unter „Zauber“ deine Zauber":"")+". Oben unter „Regeln“ steht, wie ein Spielzug abläuft.",[["Los geht’s"]])}
-    render();if(a!=="rec")scrollTo(0,0);return}
+    render();if(a!=="rec"&&a!=="rollabil")scrollTo(0,0);return}
   if(D.wrace){if(W.race!==D.wrace){W.race=D.wrace;W.sub="";W.hc="";W.plus=[];W.cSk=[];W.fSk=[];W.exp=[]}render();const h=$(".wh");if(h)h.scrollIntoView({behavior:"smooth",block:"start"});return}
   if(D.wsub){W.sub=D.wsub;W.hc="";render();return}
   if(D.weq){const[i,j]=D.weq.split(":").map(Number);W.eq[i]=j;render();return}
@@ -809,13 +827,13 @@ document.addEventListener("click",e=>{
   if(D.whc){W.hc=W.hc===D.whc?"":D.whc;render();return}
   if(D.wcls){if(W.cls!==D.wcls){W.cls=D.wcls;W.cSk=[];W.exp=[];W.eq=[];W.cant=[];W.sp=[]}render();return}
   if(D.wbg){if(W.bg!==D.wbg){W.bg=D.wbg;W.cSk=[];W.fSk=[];W.exp=[]}render();return}
-  if(D.wmethod){if(W.method!==D.wmethod){W.method=D.wmethod;ABIL.forEach(([a])=>W.base[a]="")}render();return}
+  if(D.wmethod){if(W.method!==D.wmethod){W.method=D.wmethod;W.rolls=null;W.ri={};ABIL.forEach(([a])=>W.base[a]="")}render();return}
   if(D.wplus){toggle(W.plus,D.wplus);if(W.plus.length>2)W.plus.shift();render();return}
   if(D.wcsk){toggle(W.cSk,D.wcsk);W.exp=W.exp.filter(x=>x==="diebeswerkzeug"||wFixed().includes(x)||W.cSk.includes(x)||W.fSk.includes(x));render();return}
   if(D.wfsk){toggle(W.fSk,D.wfsk);W.exp=W.exp.filter(x=>x==="diebeswerkzeug"||wFixed().includes(x)||W.cSk.includes(x)||W.fSk.includes(x));render();return}
   if(D.wexp){toggle(W.exp,D.wexp);render();return}
 },true);
-document.addEventListener("change",e=>{if(W&&e.target.dataset.wbase){W.base[e.target.dataset.wbase]=e.target.value;render()}});
+document.addEventListener("change",e=>{if(W&&e.target.dataset.wri){const a=e.target.dataset.wri,i=e.target.value;W.ri[a]=i;W.base[a]=i===""?"":String(W.rolls[+i]);render();return}if(W&&e.target.dataset.wbase){W.base[e.target.dataset.wbase]=e.target.value;render()}});
 document.addEventListener("input",e=>{if(W&&e.target.dataset.wtext){W[e.target.dataset.wtext]=e.target.value;const n=document.querySelector('[data-w="next"]'),er=wOk();if(n)n.disabled=!!er;const el=$("#wErr");if(el)el.textContent=er}});
 
 /* ---------- Etappe 2: Waffen, Ausrüstung, Zauber, Regeln ---------- */
@@ -928,7 +946,7 @@ const BASICS=[
  ["Muss ich die Regeln auswendig können?","Nein! Am Anfang reicht es völlig, zu wissen, wo was auf deinem Bogen steht. Diese Seite rechnet alles für dich aus. Die Regeln lernt ihr beim Spielen nach und nach."],
  ["Welche Würfel gibt es?","Die Würfel heißen nach ihrer Seitenzahl: W4, W6, W8, W10, W12 und W20. Ein W6 ist der normale Würfel mit 6 Seiten. Der W20 hat 20 Seiten und ist der wichtigste. „2W6“ heißt: zwei W6 werfen und zusammenzählen."],
  ["Wann würfle ich?","Nur wenn etwas schiefgehen kann. Eine Tür öffnen: kein Wurf. Eine verschlossene Tür aufbrechen: Wurf. Der Spielleiter sagt dir dann, worauf du würfeln sollst, z. B. „Mach einen Athletik-Wurf“."],
- ["Wie würfle ich richtig?","Tippe hier auf der Seite den passenden Wert an, z. B. „Athletik“. Die Seite würfelt den W20 und rechnet deinen Bonus dazu. Sag dem Spielleiter die große Zahl. Faustregel: Je höher, desto besser. Würfelst du mit echten Würfeln, rechnest du die Zahl vom Bogen dazu."],
+ ["Wie würfle ich richtig?","Überall, wo das kleine Würfelsymbol steht, kannst du tippen, z. B. bei „Athletik“. Die Seite würfelt den W20 und rechnet deinen Bonus dazu. Sag dem Spielleiter die große Zahl. Faustregel: Je höher, desto besser. Würfelst du mit echten Würfeln, rechnest du die Zahl vom Bogen dazu."],
  ["Was bedeuten die Zahlen mit + und −?","Das ist dein Bonus, wie gut du in etwas bist. +3 heißt: Du darfst 3 auf deinen Wurf draufrechnen. −1 heißt: 1 abziehen. Ein hoher Bonus macht Erfolg wahrscheinlicher."],
  ["Was sind Trefferpunkte?","Deine Lebenspunkte. Wirst du getroffen, ziehst du den Schaden davon ab. Bei 0 fällst du um, bist aber noch nicht tot: Deine Gruppe kann dich retten. Heilen und Ausruhen bringt die Punkte zurück."],
  ["Was passiert im Kampf?","Alle sind der Reihe nach dran, wie bei einem Brettspiel. In deinem Zug darfst du dich bewegen und eine Sache tun, meistens angreifen oder zaubern. Die Seite zeigt dir im Tab „Kampf“ deine Angriffe: erst den goldenen Knopf zum Treffen, dann „Schaden“."],
