@@ -312,6 +312,7 @@ function slotsMax(c){
   const k=cls(c),L=Math.min(20,Math.max(1,c.level));let arr=[];
   if(k.table==="full")arr=FULL[L];else if(k.table==="half")arr=HALF[L];
   else if(k.table==="pact"){const n=L>=17?4:L>=11?3:L>=2?2:1;const lv=Math.min(5,Math.ceil(L/2));arr=Array(lv).fill(0);arr[lv-1]=n}
+  if(!arr.length&&THIRDS.includes(c.subclass))arr=L<3?[]:L<4?[2]:L<7?[3]:L<10?[4,2]:L<13?[4,3]:L<16?[4,3,2]:L<19?[4,3,3]:[4,3,3,1];
   const out=Array(9).fill(0);arr.forEach((v,i)=>out[i]=v);return out;
 }
 function prepMax(c){
@@ -381,7 +382,7 @@ function renderTop(){
   const c=cur();
   $("#charSel").innerHTML=chars.map(x=>`<option value="${x.id}" ${x.id===c.id?"selected":""}>${esc(x.name||"Ohne Namen")}</option>`).join("");
   const sub=[`Stufe ${c.level} ${esc(c.cls)}`,esc(c.subclass),esc(c.race),esc(c.background)].filter(Boolean).join(", ");
-  $("#hero").innerHTML=`<h1>${esc(c.name||"Ohne Namen")}</h1><p>${sub}</p><div class="btnrow"><button class="chip" data-act="lvl">Stufe aufsteigen</button>${SUB[c.cls]&&!c.subclass&&c.level>=SUB[c.cls].lv?`<button class="chip on" data-act="subcatch">${SUB[c.cls].t} wählen</button>`:""}</div>`;
+  $("#hero").innerHTML=`<h1>${esc(c.name||"Ohne Namen")}</h1><p>${sub}</p><div class="btnrow"><button class="chip" data-act="lvl">Stufe aufsteigen</button>${needCatch(c)?`<button class="chip on" data-act="subcatch">${needCatch(c)}</button>`:""}</div>`;
   const tabs=[["kampf","Kampf"],["werte","Werte"]];
   if(isCaster(c))tabs.push(["zauber","Zauber"]);
   tabs.push(["notizen","Notizen"],["bearbeiten","Bearbeiten"]);
@@ -445,7 +446,7 @@ function vWerte(c){
 }
 function vZauber(c){
   const ab=castAbil(c),max=slotsMax(c),pm=prepMax(c);
-  const prepCount=c.spells.filter(s=>s.prepared&&s.level>0).length;
+  const prepCount=c.spells.filter(s=>s.prepared&&s.level>0&&!s.always).length;
   let h=`<div class="stats" style="grid-template-columns:repeat(3,1fr)">
     <button class="stat" data-roll="spell"><b>${sg(spellAtk(c))}</b><span>Zauberangriff</span></button>
     <div class="stat"><b>${spellDC(c)}</b><span>Zauber-SG</span>${helpBtn("zwerte")}</div>
@@ -466,7 +467,7 @@ function vZauber(c){
   levels.forEach(l=>{
     h+=`<div class="grade">Grad ${l}</div>`;
     c.spells.forEach((s,i)=>{if(s.level!==l)return;
-      h+=`<div class="spell"><span class="n">${esc(s.name)}${SP[s.name]?`<small>${esc(SP[s.name][1])}</small>`:""}</span>${pm!==null?`<button class="tog ${s.prepared?"on":""}" data-prep="${i}">${s.prepared?"vorbereitet":"nicht vorbereitet"}</button>`:""}<button class="x" data-rms="${i}" aria-label="Entfernen">×</button></div>`});
+      h+=`<div class="spell"><span class="n">${esc(s.name)}${SP[s.name]?`<small>${esc(SP[s.name][1])}</small>`:""}</span>${s.always?`<span class="tog on">immer vorbereitet</span>`:pm!==null?`<button class="tog ${s.prepared?"on":""}" data-prep="${i}">${s.prepared?"vorbereitet":"nicht vorbereitet"}</button>`:""}<button class="x" data-rms="${i}" aria-label="Entfernen">×</button></div>`});
   });
   h+=`<div class="addrow"><input class="in" id="spName" list="spList" placeholder="Name eines Zaubers oder Tricks"><datalist id="spList">${Object.keys(SP).map(n=>`<option value="${esc(n)}">`).join("")}</datalist><select class="in" id="spLvl" aria-label="Grad"><option value="0">Trick</option>${[1,2,3,4,5,6,7,8,9].map(n=>`<option value="${n}">Grad ${n}</option>`).join("")}</select><button class="btn" data-act="addSpell">Hinzufügen</button></div></section>`;
   return h;
@@ -566,8 +567,8 @@ document.addEventListener("click",e=>{
   if(act==="new")return wNew();
   if(act==="import")return fileIn.click();
   if(act==="export")return exportChar();
-  if(act==="subcatch"){LU={catch:true,to:c.level,step:0,hp:"avg",sub:"",pk:{},asi:{m:"two",a:[]}};render();scrollTo(0,0);return}
-  if(act==="lvl"&&c.level<5){LU={to:c.level+1,step:0,hp:null,sub:"",pk:{},asi:{m:"two",a:[]}};render();scrollTo(0,0);return}
+  if(act==="subcatch"){LU={catch:true,to:c.level,step:0,hp:"avg",sub:"",pk:{},asi:{m:"two",a:[]},spc:[],sps:[],swap:""};render();scrollTo(0,0);return}
+  if(act==="lvl"&&c.level<5){LU={to:c.level+1,step:0,hp:null,sub:"",pk:{},asi:{m:"two",a:[]},spc:[],sps:[],swap:""};render();scrollTo(0,0);return}
   if(act==="lvl"){if(c.level>=20)return;return sheet("Stufe "+(c.level+1)+" erreichen","Deine TP steigen um deinen Trefferwürfel (W"+cls(c).hd+") + KON. Würfeln oder den sicheren Durchschnitt nehmen?",[["Durchschnitt ("+(cls(c).hd/2+1)+")",()=>levelUp(false)],["Würfeln",()=>levelUp(true)],["Abbrechen"]])}
   const amt=Math.max(0,parseInt(($("#hpAmt")||{}).value)||0);
   switch(act){
@@ -797,7 +798,7 @@ document.addEventListener("click",e=>{
     if(a==="cancel")W=null;
     if(a==="manual"){W=null;const c=blank();chars.push(c);curId=c.id;save(c);tab="bearbeiten"}
     if(a==="rec"){const order=CI[W.cls].rec;[15,14,13,12,10,8].forEach((v,i)=>W.base[order[i]]=String(v))}
-    if(a==="finish"){const c=wBuild();chars.push(c);curId=c.id;save(c);W=null;tab="kampf";if(SUB[c.cls]&&SUB[c.cls].lv===1){LU={catch:true,to:1,step:0,hp:"avg",sub:"",pk:{},asi:{m:"two",a:[]}};render();scrollTo(0,0);return}render();scrollTo(0,0);
+    if(a==="finish"){const c=wBuild();chars.push(c);curId=c.id;save(c);W=null;tab="kampf";if(needCatch(c)){LU={catch:true,to:1,step:0,hp:"avg",sub:"",pk:{},asi:{m:"two",a:[]},spc:[],sps:[],swap:""};render();scrollTo(0,0);return}render();scrollTo(0,0);
       return sheet("Willkommen, "+c.name+"!","Dein Charakter ist fertig! Im Tab „Kampf“ findest du TP und Angriffe, unter „Werte“ deine Würfe"+(isCaster(c)?", unter „Zauber“ deine Zauber":"")+". Oben unter „Regeln“ steht, wie ein Spielzug abläuft.",[["Los geht’s"]])}
     render();if(a!=="rec")scrollTo(0,0);return}
   if(D.wrace){if(W.race!==D.wrace){W.race=D.wrace;W.sub="";W.hc="";W.plus=[];W.cSk=[];W.fSk=[];W.exp=[]}render();const h=$(".wh");if(h)h.scrollIntoView({behavior:"smooth",block:"start"});return}
@@ -1001,18 +1002,21 @@ const SUB={
 let LU=null;
 const luSub=c=>{const S=SUB[c.cls];return S&&S.o[LU.sub||c.subclass]};
 const luNewSub=c=>!!(LU.sub&&!c.subclass);
-function luPicks(c){const so=luSub(c);let p=[...((LP[c.cls]||{})[LU.to]||[])];
+function luPicks(c){const so=luSub(c);let p=LU.catch?((LP[c.cls]||{})[1]||[]).filter(x=>!(c.picks[PK[x].g||x]||[]).length):[...((LP[c.cls]||{})[LU.to]||[])];
   if(so&&so.p)for(const l in so.p)if(luNewSub(c)?+l<=LU.to:+l===LU.to)p.push(...so.p[l]);return p}
 function luSteps(c){const S=SUB[c.cls],s=[];if(!LU.catch)s.push("tp","neu");
   if(S&&!c.subclass&&LU.to>=S.lv)s.push("sub");s.push(...luPicks(c).map(p=>"pk:"+p));
-  if(LU.to===4&&!LU.catch)s.push("asi");s.push("fertig");return s}
+  if(LU.to===4&&!LU.catch)s.push("asi");if(!LU.catch&&luSpInfo(c))s.push("sp");s.push("fertig");return s}
 function luOpts(c,p){const P=PK[p];if(P.type==="exp")return c.skills.filter(s=>!c.expertise.includes(s));
+  if(P.type==="cant")return (CL[P.list]||[[]])[0].filter(n=>!c.cantrips.includes(n)&&!(n==="Magierhand"&&(LU.sub||c.subclass)==="Arkaner Betrüger"));
+  if(P.type==="tsp")return CL["Magier"][1].filter(n=>!c.spells.some(s=>s.name===n));
   if(P.type==="skill")return SKILLS.map(s=>s[0]).filter(s=>!c.skills.includes(s));
   const own=c.picks[P.g||p]||[];return Object.keys(P.o).filter(n=>!own.includes(n))}
 function luOk(c,st){const k=cls(c);
   if(st==="tp")return LU.hp?"":"Wähle, wie deine TP steigen.";
   if(st==="sub")return LU.sub?"":"Wähle eine Möglichkeit.";
   if(st.startsWith("pk:")){const p=st.slice(3),n=Math.min(PK[p].n,luOpts(c,p).length),h=(LU.pk[p]||[]).length;return h<n?"Wähle noch "+(n-h)+".":""}
+  if(st==="sp")return luSpOk(c);
   if(st==="asi"){const need=LU.asi.m==="two"?2:1;return LU.asi.a.length<need?"Wähle noch "+(need-LU.asi.a.length)+" Attribut(e).":""}
   return ""}
 function luGain(c){const k=cls(c),m=mod(c.scores.con),r=LU.hp==="roll"?LU.roll:k.hd/2+1;return {r,m,g:Math.max(1,r+m)+(c.hpLvlBonus||0)}}
@@ -1027,13 +1031,14 @@ function luView(c,st){const k=cls(c),S=SUB[c.cls];
     if(slotsMax(x).join()!==slotsMax(c).join())f.push("Mehr Zauberplätze: "+slotsMax(x).map((v,i)=>v?`${v}× Grad ${i+1}`:"").filter(Boolean).join(", "));
     if(c.subclass){const so=S.o[c.subclass];if(so&&so.f[LU.to])f.push(...so.f[LU.to])}
     return `<div class="hint">Das kannst du ab Stufe ${LU.to} neu. Es wird automatisch in deine Merkmale eingetragen.</div>${f.length?`<div class="card">${ul(f)}</div>`:`<p class="muted">Auf dieser Stufe gibt es für deine Klasse nichts Neues außer TP. Das ist normal!</p>`}
-    ${isCaster(c)||k.cast?`<p class="small muted">Neue Zauber trägst du im Zauber-Tab ein. Das Feld dort schlägt dir Namen vor.</p>`:""}`}
+    ${luSpInfo(c)?`<p class="small muted">Neue Zauber wählst du gleich im nächsten Schritt.</p>`:""}`}
   if(st==="sub"){const so=luSub(c);return `<div class="hint">${LU.catch?"Als "+esc(c.cls)+" wählst du das schon auf Stufe 1. ":""}Jetzt spezialisierst du dich: Dein ${S.t} gibt dir eigene Fähigkeiten. Such dir aus, was zu deinem Charakter passt, gern auch zusammen mit dem Spielleiter.</div>
     <div class="wcards">${Object.entries(S.o).map(([n,v])=>card("data-lusub",n,LU.sub===n,n,v.d,"")).join("")}</div>
     ${so?`<div class="hint"><b>Das bekommst du:</b>${ul(Object.entries(so.f).filter(([l])=>+l<=LU.to).flatMap(([,a])=>a))}</div>`:""}`}
   if(st.startsWith("pk:")){const p=st.slice(3),P=PK[p],sel=LU.pk[p]||[],n=Math.min(P.n,luOpts(c,p).length),full=sel.length>=n;
-    return `<div class="hint"><b>${P.t}:</b> Wähle ${n}. ${P.type==="exp"?"Bei diesen Fertigkeiten zählt dein Übungsbonus doppelt.":P.type==="skill"?"In diesen Fertigkeiten bist du ab jetzt geübt.":"Tippe an, was dir gefällt."}</div>
-    ${luOpts(c,p).map(x=>`<div class="skedit"><span>${esc(SKN[x]||x)}${P.o&&P.o[x]?`<small class="muted" style="display:block;font-size:13px">${esc(P.o[x])}</small>`:""}</span><span></span><button class="tog ${sel.includes(x)?"on":""}" data-lupk="${p}|${esc(x)}" ${full&&!sel.includes(x)?"disabled":""}>${sel.includes(x)?"gewählt":"wählen"}</button></div>`).join("")}`}
+    return `<div class="hint"><b>${P.t}:</b> Wähle ${n}. ${P.type==="exp"?"Bei diesen Fertigkeiten zählt dein Übungsbonus doppelt.":P.type==="skill"?"In diesen Fertigkeiten bist du ab jetzt geübt.":P.type==="cant"?"Zaubertricks kosten keinen Zauberplatz.":P.type==="tsp"?"Erlaubt sind "+((luSub(c)||{}).sch||[]).join(" und ")+(LU.to===3?". Einer davon darf aus einer beliebigen Schule sein.":"."):"Tippe an, was dir gefällt."}</div>
+    ${luOpts(c,p).map(x=>`<div class="skedit"><span>${esc(SKN[x]||x)}${(P.o&&P.o[x])||SP[x]?`<small class="muted" style="display:block;font-size:13px">${esc(P.o&&P.o[x]?P.o[x]:(P.type==="tsp"&&SCH[x]?SCH[x]+": ":"")+SP[x][1])}</small>`:""}</span><span></span><button class="tog ${sel.includes(x)?"on":""}" data-lupk="${p}|${esc(x)}" ${luDis(c,p,x)?"disabled":""}>${sel.includes(x)?"gewählt":"wählen"}</button></div>`).join("")}`}
+  if(st==="sp")return luSpView(c);
   if(st==="asi"){const two=LU.asi.m==="two";
     return `<div class="hint">Du darfst deine Attribute verbessern: <b>+2 auf eins</b> oder <b>+1 auf zwei</b>, höchstens bis 20. Tipp: Der Modifikator steigt nur bei geraden Werten, bring dein wichtigstes Attribut (${esc(CI[c.cls].main)}) also auf eine gerade Zahl.</div>
     <div class="btnrow"><button class="chip ${two?"on":""}" data-luasim="two">+1 auf zwei</button><button class="chip ${two?"":"on"}" data-luasim="one">+2 auf eins</button></div>
@@ -1042,30 +1047,38 @@ function luView(c,st){const k=cls(c),S=SUB[c.cls];
   const g=LU.catch?null:luGain(c),so=luSub(c),items=[];
   if(g)items.push(`TP: ${c.hpMax} → ${c.hpMax+g.g}`);if(LU.sub)items.push(S.t+": "+LU.sub);
   luPicks(c).forEach(p=>(LU.pk[p]||[]).forEach(x=>items.push(PK[p].t+": "+(SKN[x]||x))));
+  [...LU.spc,...LU.sps].forEach(x=>items.push("Neuer Zauber: "+x));if(LU.swap)items.push("Vergessen: "+LU.swap);
   if(LU.to===4&&!LU.catch)items.push("Attribute: "+LU.asi.a.map(a=>AB[a][2]+" +"+(LU.asi.m==="two"?1:2)).join(", "));
   return `<div class="hint">Alles bereit! Tippe auf ${LU.catch?"„Übernehmen“":"„Aufsteigen“"}. Alles lässt sich später unter „Bearbeiten“ und „Notizen“ ändern.</div><div class="card">${ul(items)}</div>`}
 function luRender(){const c=cur(),S=luSteps(c),st=S[LU.step],err=luOk(c,st),last=LU.step===S.length-1;
-  $("#hero").innerHTML=`<p class="small muted" style="margin:0">${LU.catch?"Unterklasse wählen":"Aufstieg auf Stufe "+LU.to}, Schritt ${LU.step+1} von ${S.length}</p><div class="wprog"><i style="width:${(LU.step+1)/S.length*100}%"></i></div><h1>${{tp:"Trefferpunkte",neu:"Neue Fähigkeiten",sub:(SUB[c.cls]||{}).t,asi:"Attribute verbessern",fertig:"Zusammenfassung"}[st]||PK[st.slice(3)].t}</h1>`;
+  $("#hero").innerHTML=`<p class="small muted" style="margin:0">${LU.catch?"Nachtragen":"Aufstieg auf Stufe "+LU.to}, Schritt ${LU.step+1} von ${S.length}</p><div class="wprog"><i style="width:${(LU.step+1)/S.length*100}%"></i></div><h1>${{tp:"Trefferpunkte",neu:"Neue Fähigkeiten",sub:(SUB[c.cls]||{}).t,asi:"Attribute verbessern",sp:"Neue Zauber",fertig:"Zusammenfassung"}[st]||PK[st.slice(3)].t}</h1>`;
   $("#main").innerHTML=luView(c,st)+(err?`<p class="small muted" style="margin-top:14px">${err}</p>`:"");
   $("#nav").innerHTML=`<div class="wnav"><button data-lu="${LU.step?"back":"cancel"}">${LU.step?"Zurück":"Abbrechen"}</button>${last?`<button class="go" data-lu="apply">${LU.catch?"Übernehmen":"Aufsteigen"}</button>`:`<button class="go" data-lu="next" ${err?"disabled":""}>Weiter</button>`}</div>`}
 function luApply(){const c=cur(),S=SUB[c.cls],lines=[],oldCon=mod(c.scores.con);
-  if(!LU.catch){const g=luGain(c);c.level=LU.to;c.hpMax+=g.g;c.hp+=g.g;lines.push(...((LV[c.cls]||{})[LU.to]||[]))}
+  if(!LU.catch){const g=luGain(c);c.level=LU.to;c.hpMax+=g.g;c.hp+=g.g;lines.push(...((LV[c.cls]||{})[LU.to]||[]));
+    if((c.cls==="Mönch"&&LU.to===2)||(c.cls==="Barbar"&&LU.to===5)){addSpeed(c,3);lines.push("Bewegung jetzt "+c.speed)}
+    if(c.cls==="Mönch"&&LU.to===5)c.attacks.forEach(a=>{if(a.name==="Waffenloser Schlag")a.die="1W6"})}
   if(LU.to===4&&!LU.catch){LU.asi.a.forEach(a=>c.scores[a]=Math.min(20,c.scores[a]+(LU.asi.m==="two"?1:2)));const d2=mod(c.scores.con)-oldCon;if(d2){c.hpMax+=d2*c.level;c.hp+=d2*c.level}
     lines.push("Attributswerterhöhung: "+LU.asi.a.map(a=>AB[a][2]+" +"+(LU.asi.m==="two"?1:2)).join(", "))}
   if(luNewSub(c)){const so=S.o[LU.sub];c.subclass=LU.sub;Object.entries(so.f).forEach(([l,a])=>{if(+l<=LU.to)lines.push(...a)});
+    if(THIRDS.includes(LU.sub)){c.castAbil="int";if(LU.sub==="Arkaner Betrüger"&&!c.cantrips.includes("Magierhand"))c.cantrips.push("Magierhand")}
+    domAdd(c,LU.sub,1,LU.to);
     if(so.hp){c.hpLvlBonus=(c.hpLvlBonus||0)+so.hp;c.hpMax+=so.hp*c.level;c.hp+=so.hp*c.level}if(so.armor&&c.armor==="none")c.armor=so.armor}
-  else if(c.subclass&&!LU.catch){const so=S&&S.o[c.subclass];if(so&&so.f[LU.to])lines.push(...so.f[LU.to])}
+  else if(c.subclass&&!LU.catch){const so=S&&S.o[c.subclass];if(so&&so.f[LU.to])lines.push(...so.f[LU.to]);domAdd(c,c.subclass,LU.to,LU.to)}
   luPicks(c).forEach(p=>{const P=PK[p],sel=LU.pk[p]||[];
     if(P.type==="exp"){c.expertise.push(...sel);lines.push("Expertise: "+sel.map(x=>SKN[x]).join(", "));return}
+    if(P.type==="cant"){sel.forEach(n=>{c.cantrips.push(n);spAtk(c,n)});lines.push("Neue Zaubertricks: "+sel.join(", "));return}
+    if(P.type==="tsp"){sel.forEach(n=>{c.spells.push({name:n,level:1,prepared:true});spAtk(c,n)});lines.push("Neue Zauber: "+sel.join(", "));return}
     if(P.type==="skill"){c.skills.push(...sel);lines.push("Neue Fertigkeiten: "+sel.map(x=>SKN[x]).join(", "));return}
     const g=P.g||p;c.picks[g]=[...(c.picks[g]||[]),...sel];
     sel.forEach(x=>{lines.push(P.t+", "+x+": "+P.o[x]);
       if(x==="Verteidigung")c.acBonus=(+c.acBonus||0)+1;
       if(x==="Betörender Einfluss")["taeuschen","ueberzeugen"].forEach(s=>{if(!c.skills.includes(s))c.skills.push(s)});
       if(x==="Qualvoller Strahl")c.attacks.forEach(a=>{if(a.name==="Schauriger Strahl"&&!/\+/.test(a.die))a.die+="+"+mod(c.scores.cha)})})});
-  c.features=(c.features?c.features+"\n\n":"")+(LU.catch?"— "+(S.t)+": "+LU.sub+" —":"— Stufe "+LU.to+" —")+"\n"+lines.join("\n");
+  if(!LU.catch)lines.push(...luSpApply(c));
+  c.features=(c.features?c.features+"\n\n":"")+(LU.catch?"— Nachgetragen —":"— Stufe "+LU.to+" —")+"\n"+lines.join("\n");
   const to=LU.to,wasCatch=LU.catch;LU=null;save(c);tab="kampf";render();scrollTo(0,0);
-  showRoll(wasCatch?"✓":to,wasCatch?c.subclass:"Stufe "+to+"!",wasCatch?"Fähigkeiten eingetragen":"TP jetzt "+c.hpMax,"Alles steht unter Notizen bei den Merkmalen.")}
+  showRoll(wasCatch?"✓":to,wasCatch?"Eingetragen":"Stufe "+to+"!",wasCatch?"Fähigkeiten eingetragen":"TP jetzt "+c.hpMax,"Alles steht unter Notizen bei den Merkmalen.")}
 document.addEventListener("click",e=>{const t=e.target.closest("button");if(!t||!LU)return;const D=t.dataset,c=cur();
   if(D.lu){const S=luSteps(c);if(D.lu==="next"&&!luOk(c,S[LU.step]))LU.step++;if(D.lu==="back")LU.step--;if(D.lu==="cancel")LU=null;if(D.lu==="apply")return luApply();render();scrollTo(0,0);return}
   if(D.luhp){if(D.luhp==="roll"&&!LU.roll)LU.roll=d(cls(c).hd);if(D.luhp==="avg"&&LU.roll){}else LU.hp=D.luhp;if(D.luhp==="avg"&&!LU.roll)LU.hp="avg";render();return}
@@ -1074,6 +1087,112 @@ document.addEventListener("click",e=>{const t=e.target.closest("button");if(!t||
   if(D.luasim){LU.asi={m:D.luasim,a:[]};render();return}
   if(D.luasi){toggle(LU.asi.a,D.luasi);render();return}
 },true);
+
+/* ---------- Etappe B: Zauber beim Aufstieg ---------- */
+Object.assign(SP,{
+ "Göttliche Gunst":[1,"Bonusaktion: deine Waffenangriffe machen +1W4 gleißend (Konzentration)."],"Sengender Schlag":[1,"Bonusaktion: nächster Nahkampftreffer +1W6 Feuer, das Ziel brennt (Konzentration)."],
+ "Donnernder Schlag":[1,"Bonusaktion: nächster Nahkampftreffer +2W6 Schall, stößt 3 m weg (Konzentration)."],"Zorniger Schlag":[1,"Bonusaktion: nächster Nahkampftreffer +1W6 psychisch, Ziel verängstigt (Konzentration)."],
+ "Mal des Jägers":[1,"Bonusaktion: markiertes Ziel nimmt bei deinen Treffern +1W6 Schaden (Konzentration)."],"Dornenhagel":[1,"Nächster Fernkampftreffer lässt Dornen regnen: 1W10 Stich im Umkreis (GES-Rettungswurf)."],
+ "Verstrickender Schlag":[1,"Nächster Treffer fesselt das Ziel mit Ranken (STÄ-Rettungswurf, Konzentration)."],"Langschritt":[1,"Ein Ziel bekommt 1 Stunde +3 m Bewegung."],"Alarm":[1,"Warnt dich 8 Stunden, wenn jemand einen Bereich betritt (Ritual)."],
+ "Attribut verbessern":[2,"Ein Ziel hat 1 Stunde Vorteil auf Würfe eines Attributs (Konzentration)."],"Blindheit/Taubheit":[2,"Ein Ziel wird blind oder taub, KON-Rettungswurf jede Runde."],
+ "Brandmarkender Schlag":[2,"Nächster Waffentreffer +2W6 gleißend, Ziel leuchtet und kann nicht unsichtbar werden (Konzentration)."],"Dornenwuchs":[2,"Boden in 6 m Radius wird dornig: 2W4 Stich pro 1,5 m Bewegung (Konzentration)."],
+ "Dunkelheit":[2,"Magische Dunkelkugel (4,5 m Radius), auch Dunkelsicht hilft nicht (Konzentration)."],"Dunkelsicht":[2,"Ein Ziel sieht 8 Stunden 18 m weit im Dunkeln."],
+ "Einflüsterung":[2,"Eine Kreatur folgt einem vernünftig klingenden Vorschlag (WEI-Rettungswurf, Konzentration)."],"Flammenkugel":[2,"Feuerkugel, die du jede Runde als Bonusaktion bewegst (Konzentration).",["rettung","2W6","Feuer","dex"]],
+ "Gebet der Heilung":[2,"Bis zu 6 Verbündete heilen (10 Minuten Wirkzeit, nicht im Kampf).",["auto","2W8+MOD","Heilung"]],"Gedanken wahrnehmen":[2,"Du liest oberflächliche Gedanken in 9 m (Konzentration)."],
+ "Gefühle besänftigen":[2,"Beruhigt aufgebrachte Kreaturen in 6 m Radius (CHA-Rettungswurf, Konzentration)."],"Gegenstand finden":[2,"Du spürst, wo ein bekannter Gegenstand in 300 m ist (Konzentration)."],
+ "Hilfe":[2,"Bis zu 3 Verbündete bekommen 8 Stunden +5 maximale und aktuelle TP."],"Klopfen":[2,"Öffnet ein Schloss oder eine verschlossene Tür, laut hörbar."],
+ "Magische Waffe":[2,"Eine Waffe wird 1 Stunde magisch: +1 auf Angriff und Schaden (Konzentration)."],"Melfs Säurepfeil":[2,"Säurepfeil auf ein Ziel in 27 m, nächste Runde +2W4 Säure.",["zauber","4W4","Säure"]],
+ "Metall erhitzen":[2,"Metallgegenstand glüht, wer ihn hält oder trägt, nimmt jede Runde Schaden (Konzentration).",["auto","2W8","Feuer"]],"Mondstrahl":[2,"Silberner Lichtstrahl, den du jede Runde bewegen kannst (Konzentration).",["rettung","2W10","gleißend","con"]],
+ "Nebelschritt":[2,"Bonusaktion: Teleport bis 9 m an eine Stelle, die du siehst."],"Person festhalten":[2,"Ein Humanoide ist gelähmt, WEI-Rettungswurf jede Runde (Konzentration)."],
+ "Rindenhaut":[2,"Haut wie Rinde: RK mindestens 16 (Konzentration)."],"Schwache Genesung":[2,"Beendet eine Krankheit oder einen Zustand wie blind, vergiftet oder gelähmt."],
+ "Schweben":[2,"Ein Ziel schwebt bis 6 m hoch (Konzentration)."],"Sengender Strahl":[2,"3 Feuerstrahlen, jeder ein eigener Zauberangriff.",["zauber","2W6","Feuer, 3 Strahlen"]],
+ "Spiegelbilder":[2,"3 Trugbilder von dir lenken Angriffe ab."],"Spinnenklettern":[2,"Ein Ziel läuft 1 Stunde Wände und Decken hoch (Konzentration)."],
+ "Spirituelle Waffe":[2,"Bonusaktion: schwebende Geisterwaffe greift an, jede Runde erneut als Bonusaktion.",["zauber","1W8+MOD","Energie"]],"Spurlos":[2,"Deine Gruppe hinterlässt keine Spuren und bekommt +10 auf Heimlichkeit (Konzentration)."],
+ "Stille":[2,"Kugel (6 m Radius) ohne Geräusch, dort kann niemand mit Worten zaubern (Konzentration)."],"Unsichtbarkeit":[2,"Ein Ziel wird unsichtbar, bis es angreift oder zaubert (Konzentration)."],
+ "Verschwimmen":[2,"Angriffe gegen dich haben Nachteil (Konzentration)."],"Netz":[2,"Klebriges Netz fesselt Kreaturen in einem 6-m-Würfel (GES-Rettungswurf, Konzentration)."],
+ "Wolke aus Dolchen":[2,"Wirbelnde Dolche in einem 1,5-m-Würfel (Konzentration).",["auto","4W4","Hieb"]],"Zerschmettern":[2,"Lauter Knall in 3 m Radius, KON-Rettungswurf.",["rettung","3W8","Schall","con"]],
+ "Zone der Wahrheit":[2,"In 4,5 m Radius kann niemand bewusst lügen (CHA-Rettungswurf)."],
+ "Blitze herbeirufen":[3,"Gewitterwolke, jede Runde ein Blitz (Konzentration).",["rettung","3W10","Blitz","dex"]],"Blitzstrahl":[3,"30 m lange Blitzlinie, GES-Rettungswurf.",["rettung","8W6","Blitz","dex"]],
+ "Feuerball":[3,"Explosion mit 6 m Radius in bis zu 45 m, GES-Rettungswurf.",["rettung","8W6","Feuer","dex"]],"Fliegen":[3,"Ein Ziel fliegt 10 Minuten mit 18 m Bewegung (Konzentration)."],
+ "Fluch aufheben":[3,"Beendet Flüche auf einer Kreatur oder einem Gegenstand."],"Furcht":[3,"Kreaturen in einem 9-m-Kegel fliehen (WEI-Rettungswurf, Konzentration)."],
+ "Gegenzauber":[3,"Reaktion: Du unterbrichst einen Zauber in 18 m."],"Geisterwächter":[3,"Geister umkreisen dich (4,5 m), Gegner dort sind langsamer und nehmen Schaden (Konzentration).",["rettung","3W8","gleißend","wis"]],
+ "Graupelsturm":[3,"Eisregen: schwieriges Gelände, Leute rutschen aus (Konzentration)."],"Hast":[3,"Ziel: doppelte Bewegung, +2 RK, eine Extra-Aktion (Konzentration)."],
+ "Hoffnungsschimmer":[3,"Verbündete haben Vorteil auf WEI- und Todesrettungswürfe und heilen maximal (Konzentration)."],"Hunger von Hadar":[3,"Eisige Dunkelheit (6 m Radius) schadet allen darin (Konzentration).",["auto","2W6","Kälte"]],
+ "Hypnotisches Muster":[3,"Kreaturen in einem 9-m-Würfel stehen gebannt (WEI-Rettungswurf, Konzentration)."],"Magie bannen":[3,"Beendet einen Zauber auf einem Ziel."],
+ "Massen-Heilendes Wort":[3,"Bonusaktion: bis zu 6 Verbündete in 18 m heilen.",["auto","1W4+MOD","Heilung"]],"Nebelgestalt":[3,"Ein Ziel wird zu Nebel und passt durch Ritzen (Konzentration)."],
+ "Pflanzenwachstum":[3,"Pflanzen wachsen dicht und behindern Bewegung."],"Schutz vor Energie":[3,"Resistenz gegen eine Schadensart deiner Wahl (Konzentration)."],
+ "Stinkende Wolke":[3,"Stinkwolke (6 m Radius), wer darin ist, würgt und verliert seine Aktion (Konzentration)."],"Tageslicht":[3,"Helles Licht in 18 m Radius, vertreibt magische Dunkelheit."],
+ "Tote beleben":[3,"Erschafft einen Untoten, der dir 24 Stunden gehorcht."],"Verlangsamen":[3,"Bis zu 6 Gegner: halbe Bewegung, −2 RK, weniger Aktionen (WEI-Rettungswurf, Konzentration)."],
+ "Vampirgriff":[3,"Nekrotische Berührung, du heilst die Hälfte des Schadens (Konzentration).",["zauber","3W6","nekrotisch"]],"Wasseratmung":[3,"Bis zu 10 Kreaturen atmen 24 Stunden unter Wasser (Ritual)."],
+ "Wiederbeleben":[3,"Holt eine Kreatur zurück, die vor höchstens 1 Minute gestorben ist (Diamant für 300 GM)."],"Zungen":[3,"Ein Ziel spricht und versteht 1 Stunde jede Sprache."]
+});
+const CLG={
+ "Barde":{2:["Attribut verbessern","Blindheit/Taubheit","Einflüsterung","Gedanken wahrnehmen","Gefühle besänftigen","Gegenstand finden","Klopfen","Metall erhitzen","Person festhalten","Schwache Genesung","Stille","Unsichtbarkeit","Zerschmettern","Zone der Wahrheit"],3:["Fluch aufheben","Furcht","Hypnotisches Muster","Magie bannen","Stinkende Wolke","Zungen"]},
+ "Druide":{2:["Attribut verbessern","Dornenwuchs","Dunkelsicht","Flammenkugel","Gegenstand finden","Metall erhitzen","Mondstrahl","Rindenhaut","Schwache Genesung","Spurlos"],3:["Blitze herbeirufen","Graupelsturm","Magie bannen","Pflanzenwachstum","Schutz vor Energie","Tageslicht","Wasseratmung"]},
+ "Hexenmeister":{2:["Dunkelheit","Einflüsterung","Nebelschritt","Person festhalten","Spiegelbilder","Spinnenklettern","Unsichtbarkeit","Wolke aus Dolchen","Zerschmettern"],3:["Fliegen","Fluch aufheben","Furcht","Gegenzauber","Hunger von Hadar","Hypnotisches Muster","Magie bannen","Nebelgestalt","Vampirgriff","Zungen"]},
+ "Kleriker":{2:["Attribut verbessern","Blindheit/Taubheit","Gebet der Heilung","Gegenstand finden","Hilfe","Person festhalten","Schwache Genesung","Spirituelle Waffe","Stille","Zone der Wahrheit"],3:["Fluch aufheben","Geisterwächter","Hoffnungsschimmer","Magie bannen","Massen-Heilendes Wort","Schutz vor Energie","Tageslicht","Tote beleben","Wiederbeleben"]},
+ "Magier":{2:["Dunkelheit","Dunkelsicht","Einflüsterung","Flammenkugel","Gedanken wahrnehmen","Klopfen","Magische Waffe","Melfs Säurepfeil","Nebelschritt","Netz","Person festhalten","Schweben","Sengender Strahl","Spiegelbilder","Spinnenklettern","Unsichtbarkeit","Verschwimmen","Wolke aus Dolchen","Zerschmettern"],3:["Blitzstrahl","Feuerball","Fliegen","Fluch aufheben","Furcht","Gegenzauber","Hast","Hypnotisches Muster","Magie bannen","Nebelgestalt","Schutz vor Energie","Stinkende Wolke","Tote beleben","Vampirgriff","Verlangsamen","Wasseratmung","Zungen"]},
+ "Zauberer":{2:["Attribut verbessern","Dunkelheit","Dunkelsicht","Einflüsterung","Gedanken wahrnehmen","Klopfen","Nebelschritt","Netz","Person festhalten","Schweben","Sengender Strahl","Spiegelbilder","Spinnenklettern","Unsichtbarkeit","Verschwimmen","Wolke aus Dolchen","Zerschmettern"],3:["Blitzstrahl","Feuerball","Fliegen","Furcht","Gegenzauber","Hast","Hypnotisches Muster","Magie bannen","Nebelgestalt","Schutz vor Energie","Stinkende Wolke","Tageslicht","Verlangsamen","Wasseratmung","Zungen"]},
+ "Paladin":{1:["Befehl","Donnernder Schlag","Göttliche Gunst","Heldenmut","Magie entdecken","Schild des Glaubens","Schutz vor Gut und Böse","Segnen","Sengender Schlag","Wunden heilen","Zorniger Schlag"],2:["Brandmarkender Schlag","Hilfe","Magische Waffe","Schwache Genesung","Zone der Wahrheit"]},
+ "Waldläufer":{1:["Alarm","Dornenhagel","Gute Beeren","Langschritt","Mal des Jägers","Magie entdecken","Nebelwolke","Sprung","Tierfreundschaft","Verstrickender Schlag","Wunden heilen"],2:["Dornenwuchs","Dunkelsicht","Gegenstand finden","Rindenhaut","Schwache Genesung","Spurlos","Stille"]}
+};
+for(const k in CL)CLG[k][1]=CL[k][1];
+const KN={"Barde":[0,4,5,6,7,8],"Hexenmeister":[0,2,3,4,5,6],"Zauberer":[0,2,3,4,5,6],"Waldläufer":[0,0,2,3,3,4]};
+const CANT={"Barde":[0,2,2,2,3,3],"Druide":[0,2,2,2,3,3],"Hexenmeister":[0,2,2,2,3,3],"Kleriker":[0,3,3,3,4,4],"Magier":[0,3,3,3,4,4],"Zauberer":[0,4,4,4,5,5]};
+const PREPC=["Kleriker","Druide","Paladin"];
+const maxGrade=(k,L)=>["Paladin","Waldläufer"].includes(k)?(L<2?0:L<5?1:2):(L<3?1:L<5?2:3);
+function luSpInfo(c){const k=c.cls,to=LU.to,from=to-1;if(!CLG[k])return null;
+  const nc=CANT[k]?CANT[k][to]-CANT[k][from]:0,g=maxGrade(k,to),g0=maxGrade(k,from);
+  const known=c.spells.map(s=>s.name),pool=[];for(let i=1;i<=g;i++)pool.push(...(CLG[k][i]||[]).filter(n=>!known.includes(n)));
+  const cpool=(CL[k]?CL[k][0]:[]).filter(n=>!c.cantrips.includes(n));
+  let n=0,mode="known";
+  if(k==="Magier"){n=2;mode="book"}else if(PREPC.includes(k))mode="prep";else if(KN[k])n=KN[k][to]-KN[k][from];
+  const add=mode==="prep"&&g>g0?[...new Set(Array.from({length:g-g0},(_,i)=>CLG[k][g0+1+i]||[]).flat())].filter(x=>!known.includes(x)):[];
+  const canSwap=mode==="known"&&c.spells.length>0;
+  return (nc||n||add.length||canSwap)?{nc:Math.min(nc,cpool.length),n,mode,pool,cpool,add,g,canSwap}:null}
+function luSpView(c){const I=luSpInfo(c),tog=(attr,x,on,dis,lbl)=>`<div class="skedit"><span>${esc(x)} ${SP[x]?`<span class="muted small">Grad ${SP[x][0]||"Trick"}</span><small class="muted" style="display:block;font-size:13px">${esc(SP[x][1])}</small>`:""}</span><span></span><button class="tog ${on?"on":""}" ${attr}="${esc(x)}" ${dis&&!on?"disabled":""}>${on?(lbl||"gewählt"):(lbl?"tauschen":"wählen")}</button></div>`;
+  const n=I.n+(LU.swap?1:0);let h=`<div class="hint">Neue Stufe, neue Magie! Du kannst jetzt Zauber bis <b>Grad ${I.g}</b> lernen. Unter jedem steht kurz, was er macht.</div>`;
+  if(I.nc)h+=`<div class="card"><h2>Neuer Zaubertrick (noch ${I.nc-LU.spc.length})</h2>${I.cpool.map(x=>tog("data-luspc",x,LU.spc.includes(x),LU.spc.length>=I.nc)).join("")}</div>`;
+  if(I.mode==="prep"){h+=`<div class="card"><h2>So funktioniert es bei dir</h2><p class="small">Als ${esc(c.cls)} kennst du alle Zauber deiner Liste und wählst jeden Tag nach der langen Rast aus, welche du vorbereitest. ${I.add.length?`Ab jetzt kommen ${I.add.length} neue Zauber in deine Liste, du findest sie im Zauber-Tab zum Vorbereiten:`:"Heute kannst du "+(prepMax(Object.assign({},c,{level:LU.to})))+" Zauber vorbereiten, stell das im Zauber-Tab ein."}</p>${I.add.length?ul(I.add):""}</div>`}
+  if(I.n||LU.swap)h+=`<div class="card"><h2>${I.mode==="book"?"Neue Zauber fürs Zauberbuch":"Neue Zauber"} (noch ${n-LU.sps.length})</h2><p class="small muted">${I.mode==="book"?"Magier schreiben bei jedem Aufstieg 2 neue Zauber in ihr Buch.":"Diese Zauber kennst du ab jetzt fest."}</p>${I.pool.filter(x=>x!==LU.swap).map(x=>tog("data-lusps",x,LU.sps.includes(x),LU.sps.length>=n)).join("")}</div>`;
+  if(I.canSwap)h+=`<div class="card"><h2>Einen Zauber tauschen? (freiwillig)</h2><p class="small muted">Du darfst bei jedem Aufstieg einen bekannten Zauber vergessen und dafür oben einen anderen wählen.</p>${c.spells.map(s=>tog("data-luswap",s.name,LU.swap===s.name,!!LU.swap,"wird getauscht")).join("")}</div>`;
+  return h}
+function luSpOk(c){const I=luSpInfo(c);if(LU.spc.length<I.nc)return "Wähle noch "+(I.nc-LU.spc.length)+" Zaubertrick(s).";const n=I.n+(LU.swap?1:0);return LU.sps.length<Math.min(n,I.pool.length)?"Wähle noch "+(n-LU.sps.length)+" Zauber.":""}
+function luSpApply(c){const I=luSpInfo(c);if(!I)return[];const cm=mod(c.scores[castAbil(c)]),lines=[],atk=n=>{const a=SP[n]&&SP[n][2];if(a&&!c.attacks.some(x=>x.name===n))c.attacks.push({name:n,kind:a[0],die:a[1].replace("MOD",cm),type:a[2],save:a[3]||"dex",note:""})};
+  if(LU.swap){c.spells=c.spells.filter(s=>s.name!==LU.swap);c.attacks=c.attacks.filter(a=>a.name!==LU.swap);lines.push("Vergessen: "+LU.swap)}
+  LU.spc.forEach(n=>{c.cantrips.push(n);atk(n)});
+  LU.sps.forEach(n=>{c.spells.push({name:n,level:SP[n][0],prepared:I.mode!=="book"});atk(n)});
+  I.add.forEach(n=>{c.spells.push({name:n,level:SP[n][0],prepared:false});atk(n)});
+  const nn=[...LU.spc,...LU.sps];if(nn.length)lines.push("Neue Zauber: "+nn.join(", "));if(I.add.length)lines.push("Neu auf deiner Liste: "+I.add.join(", "));return lines}
+document.addEventListener("click",e=>{const t=e.target.closest("button");if(!t||!LU)return;const D=t.dataset;
+  if(D.luspc){toggle(LU.spc,D.luspc);render();return}
+  if(D.lusps){toggle(LU.sps,D.lusps);render();return}
+  if(D.luswap){LU.swap=LU.swap===D.luswap?"":D.luswap;LU.sps=[];render();return}
+},true);
+
+/* ---------- Nachbesserungen: Kampfstil, Domänenzauber, Drittelzauberer ---------- */
+Object.assign(SP,{"Kreuzfahrermantel":[3,"Verbündete in 9 m machen mit Waffen +1W4 gleißenden Schaden (Konzentration)."],"Verderben":[1,"Bis zu 3 Gegner ziehen 1W4 von Angriffen und Rettungswürfen ab (CHA-Rettungswurf, Konzentration)."]});
+const SCH={"Brennende Hände":"Hervorrufung","Chromatische Kugel":"Hervorrufung","Donnerwoge":"Hervorrufung","Hexenblitz":"Hervorrufung","Magisches Geschoss":"Hervorrufung","Magierrüstung":"Bannmagie","Schild":"Bannmagie","Schutz vor Gut und Böse":"Bannmagie","Farbenspiel":"Illusion","Selbstverkleidung":"Illusion","Person bezaubern":"Verzauberung","Schlaf":"Verzauberung","Tashas fürchterliches Gelächter":"Verzauberung","Federfall":"Verwandlung","Schneller Rückzug":"Verwandlung","Sprung":"Verwandlung","Identifizieren":"Erkenntnis","Magie entdecken":"Erkenntnis","Sprachen verstehen":"Erkenntnis","Nebelwolke":"Beschwörung","Unsichtbarer Diener":"Beschwörung","Vertrauten finden":"Beschwörung"};
+const THIRDS=["Mystischer Ritter","Arkaner Betrüger"];
+const DOM={"Domäne des Lebens":{1:["Segnen","Wunden heilen"],3:["Schwache Genesung","Spirituelle Waffe"],5:["Hoffnungsschimmer","Wiederbeleben"]},"Domäne des Lichts":{1:["Brennende Hände","Feenfeuer"],3:["Flammenkugel","Sengender Strahl"],5:["Tageslicht","Feuerball"]},"Domäne des Krieges":{1:["Göttliche Gunst","Schild des Glaubens"],3:["Magische Waffe","Spirituelle Waffe"],5:["Kreuzfahrermantel","Geisterwächter"]},
+ "Eid der Hingabe":{3:["Schutz vor Gut und Böse","Heiligtum"],5:["Schwache Genesung","Zone der Wahrheit"]},"Eid der Alten":{3:["Verstrickender Schlag","Tierfreundschaft"],5:["Mondstrahl","Nebelschritt"]},"Eid der Rache":{3:["Mal des Jägers","Verderben"],5:["Person festhalten","Nebelschritt"]}};
+LP["Kämpfer"]={1:["style_k"]};
+Object.assign(PK,{
+ style_k:{t:"Kampfstil",n:1,o:{"Bogenschießen":"+2 auf Fernkampfangriffe","Verteidigung":"+1 RK, solange du Rüstung trägst","Duellieren":"+2 Schaden mit einer Einhandwaffe, wenn die andere Hand frei ist","Großwaffenkampf":"Mit Zweihandwaffen darfst du 1er und 2er beim Schaden neu würfeln","Schutz":"Mit Schild: Reaktion, damit ein Angriff auf einen Verbündeten neben dir Nachteil hat","Kampf mit zwei Waffen":"Beim Angriff mit der Zweitwaffe darfst du deinen Modifikator zum Schaden addieren"}},
+ dcant:{t:"Zusätzlicher Zaubertrick",n:1,type:"cant",list:"Druide"},
+ t_cant2:{t:"Zaubertricks",n:2,type:"cant",list:"Magier"},t_sp3:{t:"Deine ersten Zauber",n:3,type:"tsp"},t_sp1:{t:"Neuer Zauber",n:1,type:"tsp"}
+});
+(()=>{const L=SUB["Druide"].o["Zirkel des Landes"];L.p={2:["land","dcant"]};L.f[2][0]="Zusätzlicher Zaubertrick von der Druidenliste";
+ const E=SUB["Kämpfer"].o["Mystischer Ritter"];E.sch=["Bannmagie","Hervorrufung"];E.p={3:["t_cant2","t_sp3"],4:["t_sp1"]};E.f[3][0]="Zauberwirken mit Intelligenz: Zaubertricks und Zauber von der Magier-Liste, vor allem Bann- und Hervorrufungsmagie. Zauberplätze wie im Zauber-Tab";
+ const A=SUB["Schurke"].o["Arkaner Betrüger"];A.sch=["Illusion","Verzauberung"];A.p={3:["t_cant2","t_sp3"],4:["t_sp1"]};A.f[3][0]="Zauberwirken mit Intelligenz: Magierhand plus Zaubertricks und Zauber von der Magier-Liste, vor allem Illusion und Verzauberung";})();
+function spAtk(c,n){const a=SP[n]&&SP[n][2];if(a&&!c.attacks.some(x=>x.name===n))c.attacks.push({name:n,kind:a[0],die:a[1].replace("MOD",mod(c.scores[castAbil(c)])),type:a[2],save:a[3]||"dex",note:""})}
+function spAdd(c,n,always){const ex=c.spells.find(s=>s.name===n);if(ex){ex.prepared=true;if(always)ex.always=true}else c.spells.push({name:n,level:SP[n]?SP[n][0]:1,prepared:true,always:!!always});spAtk(c,n)}
+function domAdd(c,sub,from,to){const D=DOM[sub];if(!D)return[];const out=[];for(const l in D)if(+l>=from&&+l<=to)D[l].forEach(n=>{spAdd(c,n,true);out.push(n)});return out}
+const addSpeed=(c,m)=>{const v=parseFloat(String(c.speed).replace(",","."));if(!isNaN(v))c.speed=String(v+m).replace(".",",")+" m"};
+function needCatch(c){const S=SUB[c.cls];if(S&&!c.subclass&&c.level>=S.lv)return S.t+" wählen";
+  const l1=(LP[c.cls]||{})[1];if(l1&&l1.some(x=>!(c.picks[PK[x].g||x]||[]).length))return PK[l1[0]].t+" wählen";return ""}
+function luDis(c,p,x){const P=PK[p],sel=LU.pk[p]||[];if(sel.includes(x))return false;if(sel.length>=Math.min(P.n,luOpts(c,p).length))return true;
+  if(P.type==="tsp"){const sch=(luSub(c)||{}).sch||[],free=LU.to===3?1:0;return !sch.includes(SCH[x])&&sel.filter(y=>!sch.includes(SCH[y])).length>=free}return false}
 
 /* ---------- Start ---------- */
 loadLocal();chars=chars.map(normalize);render();
