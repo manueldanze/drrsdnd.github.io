@@ -28,12 +28,15 @@
   --line:#39474C; --gold:#E3B252; --gold-soft:#4A3A16; --teal:#72B8AC; --teal-soft:#23403B; --red:#E57B70; --red-soft:#4A2B28;
 }
 *,*::before,*::after{box-sizing:inherit}
-html{scroll-padding-top:env(safe-area-inset-top,0px)}
+html{scroll-padding-top:calc(env(safe-area-inset-top,0px) + 12px);overscroll-behavior-y:none}
+body{overscroll-behavior-y:none}
+button,select,input,summary{touch-action:manipulation}
+.wh,h1,h2{scroll-margin-top:calc(env(safe-area-inset-top,0px) + 12px)}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:17px;line-height:1.45;-webkit-font-smoothing:antialiased}
 button,input,select,textarea{font:inherit;color:inherit}
 button{cursor:pointer}
 :focus-visible{outline:2px solid var(--gold);outline-offset:2px}
-.wrap{max-width:720px;margin:0 auto;padding:12px 16px 120px}
+.wrap{max-width:720px;margin:0 auto;padding:16px 16px calc(120px + env(safe-area-inset-bottom,0px))}
 
 /* Kopf */
 .top{display:flex;gap:8px;align-items:center;margin-bottom:6px}
@@ -248,7 +251,7 @@ const CLASSES={
 const FULL=[[],[2],[3],[4,2],[4,3],[4,3,2],[4,3,3],[4,3,3,1],[4,3,3,2],[4,3,3,3,1],[4,3,3,3,2],[4,3,3,3,2,1],[4,3,3,3,2,1],[4,3,3,3,2,1,1],[4,3,3,3,2,1,1],[4,3,3,3,2,1,1,1],[4,3,3,3,2,1,1,1],[4,3,3,3,2,1,1,1,1],[4,3,3,3,3,1,1,1,1],[4,3,3,3,3,2,1,1,1],[4,3,3,3,3,2,2,1,1]];
 const HALF=[[],[],[2],[3],[3],[4,2],[4,2],[4,3],[4,3],[4,3,2],[4,3,2],[4,3,3],[4,3,3],[4,3,3,1],[4,3,3,1],[4,3,3,2],[4,3,3,2],[4,3,3,3,1],[4,3,3,3,1],[4,3,3,3,2],[4,3,3,3,2]];
 const ARMOR={
-  none:["Keine Rüstung",10,9],barb:["Ungerüstete Verteidigung (Barbar)",10,9],monk:["Ungerüstete Verteidigung (Mönch)",10,9],leder:["Lederrüstung",11,9],beschlagen:["Beschlagenes Leder",12,9],
+  none:["Keine Rüstung",10,9],drake:["Drakonische Widerstandskraft",13,9],barb:["Ungerüstete Verteidigung (Barbar)",10,9],monk:["Ungerüstete Verteidigung (Mönch)",10,9],leder:["Lederrüstung",11,9],beschlagen:["Beschlagenes Leder",12,9],
   fell:["Fellrüstung",12,2],kettenhemd:["Kettenhemd",13,2],schuppen:["Schuppenpanzer",14,2],brust:["Brustplatte",14,2],halbplatte:["Halbplatte",15,2],
   ring:["Ringpanzer",14,0],ketten:["Kettenpanzer",16,0],schienen:["Schienenpanzer",17,0],platte:["Plattenpanzer",18,0]
 };
@@ -289,7 +292,7 @@ function blank(){
     scores:{str:10,dex:10,con:10,int:10,wis:10,cha:10},saves:["str","con"],skills:[],expertise:[],
     speed:"9 m",armor:"none",shield:false,acBonus:0,mageArmor:false,hpMax:10,hp:10,hpTemp:0,hdUsed:0,
     deathS:0,deathF:0,inspiration:false,attacks:[],cantrips:[],spells:[],slotsUsed:[0,0,0,0,0,0,0,0,0],
-    equipment:"",languages:"",features:"",personality:"",notes:"",updated:Date.now()};
+    subclass:"",picks:{},equipment:"",languages:"",features:"",personality:"",notes:"",updated:Date.now()};
 }
 
 /* ---------- Berechnungen ---------- */
@@ -377,8 +380,8 @@ const helpBtn=k=>`<button class="help" data-help="${k}" aria-label="Erklärung">
 function renderTop(){
   const c=cur();
   $("#charSel").innerHTML=chars.map(x=>`<option value="${x.id}" ${x.id===c.id?"selected":""}>${esc(x.name||"Ohne Namen")}</option>`).join("");
-  const sub=[`Stufe ${c.level} ${esc(c.cls)}`,esc(c.race),esc(c.background)].filter(Boolean).join(", ");
-  $("#hero").innerHTML=`<h1>${esc(c.name||"Ohne Namen")}</h1><p>${sub}</p><button class="chip" data-act="lvl" style="margin-top:8px">Stufe aufsteigen</button>`;
+  const sub=[`Stufe ${c.level} ${esc(c.cls)}`,esc(c.subclass),esc(c.race),esc(c.background)].filter(Boolean).join(", ");
+  $("#hero").innerHTML=`<h1>${esc(c.name||"Ohne Namen")}</h1><p>${sub}</p><div class="btnrow"><button class="chip" data-act="lvl">Stufe aufsteigen</button>${SUB[c.cls]&&!c.subclass&&c.level>=SUB[c.cls].lv?`<button class="chip on" data-act="subcatch">${SUB[c.cls].t} wählen</button>`:""}</div>`;
   const tabs=[["kampf","Kampf"],["werte","Werte"]];
   if(isCaster(c))tabs.push(["zauber","Zauber"]);
   tabs.push(["notizen","Notizen"],["bearbeiten","Bearbeiten"]);
@@ -515,7 +518,7 @@ function vEdit(c){
   return h;
 }
 function render(){
-  $(".top").style.display=W?"none":"";if(W)return wRender();
+  $(".top").style.display=W||LU?"none":"";if(W)return wRender();if(LU)return luRender();
   if(!chars.length&&tab==="regeln"){$("#hero").innerHTML="";$("#nav").innerHTML="";$("#charSel").innerHTML="";$("#main").innerHTML=vRegeln()+`<button class="btn" data-tab="kampf">Zurück</button>`;return}
   if(!chars.length){$("#hero").innerHTML="";$("#nav").innerHTML="";$("#charSel").innerHTML="";
     $("#main").innerHTML=`<section class="card"><h2>Willkommen!</h2><p>Hier verwaltest du deinen D&D-Charakter. Alles wird auf diesem Gerät gespeichert.</p>
@@ -563,6 +566,8 @@ document.addEventListener("click",e=>{
   if(act==="new")return wNew();
   if(act==="import")return fileIn.click();
   if(act==="export")return exportChar();
+  if(act==="subcatch"){LU={catch:true,to:c.level,step:0,hp:"avg",sub:"",pk:{},asi:{m:"two",a:[]}};render();scrollTo(0,0);return}
+  if(act==="lvl"&&c.level<5){LU={to:c.level+1,step:0,hp:null,sub:"",pk:{},asi:{m:"two",a:[]}};render();scrollTo(0,0);return}
   if(act==="lvl"){if(c.level>=20)return;return sheet("Stufe "+(c.level+1)+" erreichen","Deine TP steigen um deinen Trefferwürfel (W"+cls(c).hd+") + KON. Würfeln oder den sicheren Durchschnitt nehmen?",[["Durchschnitt ("+(cls(c).hd/2+1)+")",()=>levelUp(false)],["Würfeln",()=>levelUp(true)],["Abbrechen"]])}
   const amt=Math.max(0,parseInt(($("#hpAmt")||{}).value)||0);
   switch(act){
@@ -792,7 +797,7 @@ document.addEventListener("click",e=>{
     if(a==="cancel")W=null;
     if(a==="manual"){W=null;const c=blank();chars.push(c);curId=c.id;save(c);tab="bearbeiten"}
     if(a==="rec"){const order=CI[W.cls].rec;[15,14,13,12,10,8].forEach((v,i)=>W.base[order[i]]=String(v))}
-    if(a==="finish"){const c=wBuild();chars.push(c);curId=c.id;save(c);W=null;tab="kampf";render();scrollTo(0,0);
+    if(a==="finish"){const c=wBuild();chars.push(c);curId=c.id;save(c);W=null;tab="kampf";if(SUB[c.cls]&&SUB[c.cls].lv===1){LU={catch:true,to:1,step:0,hp:"avg",sub:"",pk:{},asi:{m:"two",a:[]}};render();scrollTo(0,0);return}render();scrollTo(0,0);
       return sheet("Willkommen, "+c.name+"!","Dein Charakter ist fertig! Im Tab „Kampf“ findest du TP und Angriffe, unter „Werte“ deine Würfe"+(isCaster(c)?", unter „Zauber“ deine Zauber":"")+". Oben unter „Regeln“ steht, wie ein Spielzug abläuft.",[["Los geht’s"]])}
     render();if(a!=="rec")scrollTo(0,0);return}
   if(D.wrace){if(W.race!==D.wrace){W.race=D.wrace;W.sub="";W.hc="";W.plus=[];W.cSk=[];W.fSk=[];W.exp=[]}render();const h=$(".wh");if(h)h.scrollIntoView({behavior:"smooth",block:"start"});return}
@@ -915,10 +920,24 @@ function wAddEqSpells(c){
     if(W.cls==="Magier"){const pm=prepMax(c);c.spells.forEach((x,i)=>x.prepared=i<pm)}}
   [...c.cantrips,...W.sp].forEach(n=>{const a=SP[n]&&SP[n][2];if(a)c.attacks.push({name:n,kind:a[0],die:a[1].replace("MOD",cm),type:a[2],save:a[3]||"dex",note:""})});
 }
+const BASICS=[
+ ["Was ist D&D überhaupt?","Ein Spiel, bei dem ihr gemeinsam eine Geschichte erzählt. Jeder spielt eine Figur, den Charakter. Ihr sitzt am Tisch, redet und würfelt. Es gibt kein Spielbrett und keine Gewinner: Ziel ist, dass alle Spaß haben."],
+ ["Was macht der Spielleiter?","Er ist der Erzähler. Er beschreibt die Welt („Ihr steht vor einer dunklen Höhle …“), spielt alle anderen Figuren und Monster und entscheidet, wann gewürfelt wird. Wenn du unsicher bist, frag ihn einfach, das ist völlig normal."],
+ ["Was mache ich als Spieler?","Du sagst, was dein Charakter tut, ganz normal in eigenen Worten: „Ich schaue mich im Raum um“ oder „Ich spreche den Wirt an“. Du musst dafür keine Regeln kennen. Der Spielleiter sagt dir, ob du dafür würfeln musst."],
+ ["Muss ich die Regeln auswendig können?","Nein! Am Anfang reicht es völlig, zu wissen, wo was auf deinem Bogen steht. Diese Seite rechnet alles für dich aus. Die Regeln lernt ihr beim Spielen nach und nach."],
+ ["Welche Würfel gibt es?","Die Würfel heißen nach ihrer Seitenzahl: W4, W6, W8, W10, W12 und W20. Ein W6 ist der normale Würfel mit 6 Seiten. Der W20 hat 20 Seiten und ist der wichtigste. „2W6“ heißt: zwei W6 werfen und zusammenzählen."],
+ ["Wann würfle ich?","Nur wenn etwas schiefgehen kann. Eine Tür öffnen: kein Wurf. Eine verschlossene Tür aufbrechen: Wurf. Der Spielleiter sagt dir dann, worauf du würfeln sollst, z. B. „Mach einen Athletik-Wurf“."],
+ ["Wie würfle ich richtig?","Tippe hier auf der Seite den passenden Wert an, z. B. „Athletik“. Die Seite würfelt den W20 und rechnet deinen Bonus dazu. Sag dem Spielleiter die große Zahl. Faustregel: Je höher, desto besser. Würfelst du mit echten Würfeln, rechnest du die Zahl vom Bogen dazu."],
+ ["Was bedeuten die Zahlen mit + und −?","Das ist dein Bonus, wie gut du in etwas bist. +3 heißt: Du darfst 3 auf deinen Wurf draufrechnen. −1 heißt: 1 abziehen. Ein hoher Bonus macht Erfolg wahrscheinlicher."],
+ ["Was sind Trefferpunkte?","Deine Lebenspunkte. Wirst du getroffen, ziehst du den Schaden davon ab. Bei 0 fällst du um, bist aber noch nicht tot: Deine Gruppe kann dich retten. Heilen und Ausruhen bringt die Punkte zurück."],
+ ["Was passiert im Kampf?","Alle sind der Reihe nach dran, wie bei einem Brettspiel. In deinem Zug darfst du dich bewegen und eine Sache tun, meistens angreifen oder zaubern. Die Seite zeigt dir im Tab „Kampf“ deine Angriffe: erst den goldenen Knopf zum Treffen, dann „Schaden“."],
+ ["Ich weiß nicht, was ich tun soll?","Völlig okay! Frag den Spielleiter „Was sehe ich hier?“ oder deine Mitspieler. Oft hilft: Was würde mein Charakter jetzt tun? Du kannst auch einfach mit den anderen Figuren in der Welt reden."],
+ ["Was ist eine Stufe?","Deine Erfahrung. Alle fangen auf Stufe 1 an. Nach ein paar Abenteuern sagt der Spielleiter „Ihr steigt auf“. Dann wirst du stärker und lernst Neues."]
+];
 const RULES=[
  ["Wie läuft ein Spiel ab?","Der Spielleiter (SL) beschreibt, was passiert. Ihr sagt, was eure Charaktere tun. Ist unklar, ob etwas klappt, sagt der SL, worauf ihr würfeln sollt. Es gibt kein Gewinnen: Ihr erzählt gemeinsam eine Geschichte."],
- ["Der W20-Wurf","Fast alles funktioniert gleich: W20 würfeln + passender Modifikator. Erreichst du den Schwierigkeitsgrad (SG), klappt es. Typisch: SG 10 leicht, 15 mittel, 20 schwer. Bei Angriffen ist der SG die Rüstungsklasse (RK) des Ziels."],
- ["Vorteil und Nachteil","Vorteil: zwei W20, der höhere zählt. Nachteil: zwei W20, der niedrigere zählt. Hast du beides gleichzeitig, heben sie sich auf. Stell es im Kampf- oder Werte-Tab oben um."],
+ ["Wie schwer ist ein Wurf?","Der Spielleiter hat im Kopf eine Zahl, die du erreichen musst. Die heißt Schwierigkeitsgrad (SG): 10 ist leicht, 15 mittel, 20 schwer. Beim Angreifen ist diese Zahl die Rüstungsklasse (RK) des Gegners."],
+ ["Vorteil und Nachteil","Manchmal hilft dir die Situation, z. B. greifst du einen schlafenden Gegner an. Dann hast du Vorteil: Du wirfst zwei W20 und nimmst den besseren. Ist die Lage schlecht, etwa im Dunkeln, hast du Nachteil und nimmst den schlechteren. Der Spielleiter sagt dir, wann das gilt. Oben bei den Angriffen stellst du es um."],
  ["Dein Zug im Kampf","Zuerst würfeln alle Initiative, das bestimmt die Reihenfolge. In deinem Zug hast du:<ul class=\"tr\"><li><b>Bewegung</b> bis zu deiner Bewegungsrate, auch aufgeteilt</li><li><b>Eine Aktion</b>, z. B. Angreifen oder Zaubern</li><li><b>Eine Bonusaktion</b>, nur wenn eine Fähigkeit es erlaubt</li><li><b>Eine Reaktion</b> pro Runde, auch im Zug anderer (z. B. Gelegenheitsangriff, Zauber Schild)</li><li>Nebenbei kannst du einen Gegenstand benutzen oder kurz reden</li></ul>"],
  ["Welche Aktionen gibt es?","<ul class=\"tr\"><li><b>Angreifen:</b> ein Waffenangriff</li><li><b>Zauber wirken</b></li><li><b>Spurt:</b> noch einmal deine Bewegung</li><li><b>Rückzug:</b> Bewegung ohne Gelegenheitsangriffe</li><li><b>Ausweichen:</b> Angriffe gegen dich haben Nachteil</li><li><b>Helfen:</b> ein Verbündeter bekommt Vorteil</li><li><b>Verstecken:</b> Wurf auf Heimlichkeit</li><li><b>Vorbereiten:</b> „Wenn der Ork durch die Tür kommt, schieße ich“</li></ul>"],
  ["Angreifen und Schaden","W20 + Angriffsbonus gegen die RK des Ziels. Bei Treffer würfelst du Schaden. Eine natürliche 20 ist ein kritischer Treffer: Schadenswürfel doppelt würfeln. Eine natürliche 1 verfehlt immer."],
@@ -932,7 +951,129 @@ const RULES=[
  ["Stufenaufstieg","Der SL sagt euch, wann ihr aufsteigt. Dann tippst du unter deinem Namen auf „Stufe aufsteigen“. Neue Fähigkeiten und Zauber stehen im Buch bei deiner Klasse, trag sie unter Notizen oder Zauber ein."],
  ["Abkürzungen","SL = Spielleiter, SG = Schwierigkeitsgrad, RK = Rüstungsklasse, TP = Trefferpunkte, EP = Erfahrungspunkte, W6 = sechsseitiger Würfel (2W6 = zwei davon zusammenzählen), STÄ/GES/KON/INT/WEI/CHA = die sechs Attribute."]
 ];
-function vRegeln(){return `<section class="card"><h2>Regeln kurz erklärt</h2><p class="small muted">Das Wichtigste für den Spieltisch. Tippe ein Thema an.</p>${RULES.map(([t,x])=>`<details><summary>${t}</summary><div>${x}</div></details>`).join("")}</section>`}
+function vRegeln(){const L=a=>a.map(([t,x])=>`<details><summary>${t}</summary><div>${x}</div></details>`).join("");return `<section class="card"><h2>Ganz von vorn</h2><p class="small muted">Für den allerersten Spieleabend. Tippe eine Frage an.</p>${L(BASICS)}</section><section class="card"><h2>Wenn ihr mehr wissen wollt</h2><p class="small muted">Genauere Regeln, brauchst du nicht gleich am Anfang.</p>${RULES.map(([t,x])=>`<details><summary>${t}</summary><div>${x}</div></details>`).join("")}</section>`}
+
+/* ---------- Aufstiegs-Assistent (Stufe 2–5) ---------- */
+const XA="Zusätzlicher Angriff: Bei der Aktion Angreifen greifst du zweimal an";
+const LV={
+ "Barbar":{2:["Rücksichtsloser Angriff: Beim ersten Angriff im Zug darfst du Vorteil nehmen, dafür haben Angriffe gegen dich bis zu deinem nächsten Zug auch Vorteil","Gefahrengespür: Vorteil bei GES-Rettungswürfen gegen Fallen und Zauber, die du sehen kannst"],3:["Kampfrausch: jetzt 3× pro langer Rast"],5:[XA,"Schnelle Bewegung: +3 m Bewegung ohne schwere Rüstung"]},
+ "Barde":{2:["Hansdampf in allen Gassen: halber Übungsbonus auf Attributswürfe, in denen du nicht geübt bist","Lied der Erholung: Verbündete heilen bei einer kurzen Rast zusätzlich 1W6"],3:["Expertise: doppelter Übungsbonus bei 2 Fertigkeiten"],5:["Bardische Inspiration: jetzt W8","Quelle der Inspiration: Bardische Inspiration lädt schon bei einer kurzen Rast auf"]},
+ "Druide":{2:["Tiergestalt: 2× pro kurzer Rast verwandelst du dich in ein Tier, das du kennst (bis HG 1/4, nicht fliegend oder schwimmend). Werte im Buch"],4:["Tiergestalt: jetzt bis HG 1/2 und auch schwimmende Tiere"]},
+ "Hexenmeister":{2:["Schauerliche Anrufungen: dauerhafte magische Kräfte"],3:["Paktgabe: ein besonderes Geschenk deines Schutzherrn"],5:["Schauerliche Anrufungen: eine weitere"]},
+ "Kämpfer":{2:["Tatendrang: 1× pro kurzer Rast in deinem Zug eine zusätzliche Aktion"],5:[XA]},
+ "Kleriker":{2:["Göttliche Macht: 1× pro kurzer Rast. Untote vertreiben: Untote in 9 m müssen einen WEI-Rettungswurf schaffen, sonst fliehen sie 1 Minute. Deine Domäne gibt eine weitere Anwendung"],5:["Untote zerstören: Schwache Untote (HG 1/2 oder weniger), die du vertreibst, werden zerstört"]},
+ "Magier":{},
+ "Mönch":{2:["Ki: Ki-Punkte gleich deiner Stufe, laden bei einer kurzen Rast auf. Schlaghagel (1 Ki): 2 waffenlose Schläge als Bonusaktion. Geduldige Verteidigung (1 Ki): Ausweichen als Bonusaktion. Schritt des Windes (1 Ki): Rückzug oder Spurt als Bonusaktion","Ungerüstete Bewegung: +3 m Bewegung ohne Rüstung"],3:["Geschosse abwehren: Reaktion, um Fernkampfschaden um 1W10 + GES + Stufe zu verringern"],4:["Langsamer Fall: Reaktion, um Fallschaden um 5 × Stufe zu verringern"],5:[XA,"Betäubender Schlag (1 Ki): Nach einem Treffer muss das Ziel einen KON-Rettungswurf schaffen, sonst ist es bis zu deinem nächsten Zug betäubt","Kampfkunst: waffenlose Schläge jetzt 1W6"]},
+ "Paladin":{2:["Zauberwirken mit Charisma: ab jetzt Paladinzauber","Göttliches Niederstrecken: Bei einem Nahkampftreffer einen Zauberplatz ausgeben für +2W8 gleißenden Schaden"],3:["Göttliche Gesundheit: immun gegen Krankheiten"],5:[XA]},
+ "Schurke":{2:["Raffinierte Aktion: Spurt, Rückzug oder Verstecken als Bonusaktion"],3:["Hinterhältiger Angriff: jetzt 2W6"],5:["Unglaubliches Ausweichen: Reaktion, um den Schaden eines Angriffs, den du siehst, zu halbieren","Hinterhältiger Angriff: jetzt 3W6"]},
+ "Waldläufer":{2:["Zauberwirken mit Weisheit: ab jetzt Waldläuferzauber"],3:["Urtümliches Bewusstsein: Zauberplatz ausgeben, um bestimmte Kreaturen in der Nähe zu spüren"],5:[XA]},
+ "Zauberer":{2:["Quelle der Magie: Zaubereipunkte gleich deiner Stufe. Du kannst sie in Zauberplätze umwandeln und umgekehrt (Tabelle im Buch)"],3:["Metamagie: Du kannst deine Zauber verändern"]}
+};
+const LP={"Paladin":{2:["style_pal"]},"Waldläufer":{2:["style_wl"]},"Hexenmeister":{2:["inv2"],3:["pact"],5:["inv1"]},"Zauberer":{3:["meta"]},"Barde":{3:["exp2"]}};
+const INV={"Qualvoller Strahl":"Schauriger Strahl macht +CHA-Mod Schaden (sehr beliebt)","Abstoßender Strahl":"Schauriger Strahl stößt das Ziel 3 m weg","Rüstung der Schatten":"Magierrüstung beliebig oft ohne Zauberplatz","Teufelssicht":"Du siehst 36 m weit, auch in magischer Dunkelheit","Unheimliche Sicht":"Magie entdecken beliebig oft ohne Zauberplatz","Maske der vielen Gesichter":"Selbstverkleidung beliebig oft ohne Zauberplatz","Betörender Einfluss":"Übung in Täuschen und Überzeugen"};
+const LAND="Bestimmt deine Zirkelzauber, siehe Buch";
+const PK={
+ style_pal:{t:"Kampfstil",n:1,o:{"Verteidigung":"+1 RK, solange du Rüstung trägst","Duellieren":"+2 Schaden mit einer Einhandwaffe, wenn die andere Hand frei ist (Schild erlaubt)","Großwaffenkampf":"Mit Zweihandwaffen darfst du 1er und 2er beim Schaden neu würfeln","Schutz":"Mit Schild: Reaktion, damit ein Angriff auf einen Verbündeten neben dir Nachteil hat"}},
+ style_wl:{t:"Kampfstil",n:1,o:{"Bogenschießen":"+2 auf Fernkampfangriffe","Verteidigung":"+1 RK, solange du Rüstung trägst","Duellieren":"+2 Schaden mit einer Einhandwaffe, wenn die andere Hand frei ist","Kampf mit zwei Waffen":"Beim Angriff mit der Zweitwaffe darfst du deinen Modifikator zum Schaden addieren"}},
+ inv2:{t:"Schauerliche Anrufungen",g:"inv",n:2,o:INV},inv1:{t:"Neue Schauerliche Anrufung",g:"inv",n:1,o:INV},
+ pact:{t:"Paktgabe",n:1,o:{"Pakt der Kette":"Du kannst Vertrauten finden wirken und bekommst besondere Vertraute wie Kobold oder Pseudodrache","Pakt der Klinge":"Als Aktion beschwörst du eine Nahkampfwaffe deiner Wahl","Pakt des Folianten":"Ein Buch der Schatten mit 3 Zaubertricks beliebiger Klassen (im Zauber-Tab eintragen)"}},
+ meta:{t:"Metamagie",n:2,o:{"Behutsamer Zauber":"Verbündete bestehen Rettungswürfe gegen deinen Zauber automatisch (1 Punkt)","Fernzauber":"Doppelte Reichweite (1 Punkt)","Machtvoller Zauber":"Schadenswürfel bis CHA-Mod neu würfeln (1 Punkt)","Verlängerter Zauber":"Doppelte Wirkungsdauer (1 Punkt)","Erhöhter Zauber":"Ein Ziel hat Nachteil auf den Rettungswurf (3 Punkte)","Beschleunigter Zauber":"Zauber als Bonusaktion wirken (2 Punkte)","Subtiler Zauber":"Zaubern ohne Worte und Gesten (1 Punkt)","Doppelter Zauber":"Ein Einzelziel-Zauber trifft ein zweites Ziel (Punkte = Grad)"}},
+ totem:{t:"Totemgeist",n:1,o:{"Bär":"Im Kampfrausch Resistenz gegen alle Schäden außer psychisch","Adler":"Im Kampfrausch Spurt als Bonusaktion, Gelegenheitsangriffe gegen dich mit Nachteil","Wolf":"Im Kampfrausch haben Verbündete Vorteil gegen Gegner neben dir"}},
+ hunter:{t:"Beute des Jägers",n:1,o:{"Kolossjäger":"1× pro Zug +1W8 Schaden gegen verletzte Gegner","Riesentöter":"Reaktion: großen Gegner, der dich angreift, sofort zurückschlagen","Hordenbrecher":"1× pro Zug einen zweiten Gegner neben dem ersten angreifen"}},
+ land:{t:"Gelände deines Zirkels",n:1,o:{"Arktis":LAND,"Gebirge":LAND,"Grasland":LAND,"Küste":LAND,"Sumpf":LAND,"Unterreich":LAND,"Wald":LAND,"Wüste":LAND}},
+ maneuver:{t:"Manöver",n:3,o:{"Präziser Angriff":"Überlegenheitswürfel auf den Angriffswurf addieren","Riposte":"Reaktion: Verfehlt dich ein Gegner, greifst du ihn an","Umstoßangriff":"Ziel fällt um (STÄ-Rettungswurf)","Entwaffnender Angriff":"Ziel lässt einen Gegenstand fallen (STÄ-Rettungswurf)","Bedrohlicher Angriff":"Ziel ist verängstigt (WEI-Rettungswurf)","Stoßangriff":"Ziel wird 4,5 m weggestoßen","Parade":"Reaktion: Schaden um Würfel + GES verringern"}},
+ exp2:{t:"Expertise",n:2,type:"exp"},lore3:{t:"Drei neue Fertigkeiten",n:3,type:"skill"}
+};
+const SUB={
+ "Barbar":{lv:3,t:"Pfad",o:{"Pfad des Berserkers":{d:"Pure Wut: im Kampfrausch noch mehr Angriffe.",f:{3:["Raserei: Im Kampfrausch jede Runde ein zusätzlicher Nahkampfangriff als Bonusaktion, danach 1 Stufe Erschöpfung"]}},"Pfad des Totemkriegers":{d:"Ein Tiergeist leitet dich.",f:{3:["Geistersucher: Tiere verstehen und spüren (als Ritual)"]},p:{3:["totem"]}}}},
+ "Barde":{lv:3,t:"Bardenkolleg",o:{"Kolleg des Wissens":{d:"Sammler von Wissen und scharfen Worten.",f:{3:["Schneidende Worte: Reaktion, um mit Bardischer Inspiration den Wurf eines Gegners zu verringern"]},p:{3:["lore3"]}},"Kolleg der Tapferkeit":{d:"Kämpfender Barde, der Helden besingt.",f:{3:["Übung: mittelschwere Rüstung, Schilde, Kriegswaffen","Kampfinspiration: Bardische Inspiration geht auch auf Schaden oder RK"]}}}},
+ "Druide":{lv:2,t:"Druidenzirkel",o:{"Zirkel des Landes":{d:"Mehr Zauber, verbunden mit einem Gelände.",f:{2:["Zusätzlicher Zaubertrick deiner Wahl (im Zauber-Tab eintragen)","Natürliche Erholung: 1× pro Tag bei einer kurzen Rast Zauberplätze zurückholen"],3:["Zirkelzauber: 2 zusätzliche Zauber, immer vorbereitet (siehe Buch)"],5:["Zirkelzauber: 2 weitere (siehe Buch)"]},p:{2:["land"]}},"Zirkel des Mondes":{d:"Meister der Tiergestalt, stark im Nahkampf.",f:{2:["Kampf-Tiergestalt: Verwandlung als Bonusaktion, in Tiergestalt Zauberplatz ausgeben für 1W8 Heilung pro Grad","Zirkelgestalten: Tiere bis HG 1"]}}}},
+ "Hexenmeister":{lv:1,t:"Schutzherr",o:{"Die Erzfee":{d:"Ein launisches Feenwesen.",f:{1:["Feenpräsenz: 1× pro kurzer Rast Kreaturen in einem 3-m-Würfel bezaubern oder verängstigen (WEI-Rettungswurf)"]}},"Der Unhold":{d:"Ein Dämon oder Teufel.",f:{1:["Segen des Dunklen: Bringst du einen Gegner auf 0 TP, bekommst du CHA-Mod + Stufe temporäre TP"]}},"Der Große Alte":{d:"Ein uraltes, unbegreifliches Wesen.",f:{1:["Erwachter Geist: telepathisch mit Kreaturen in 9 m sprechen"]}}}},
+ "Kämpfer":{lv:3,t:"Archetyp",o:{"Champion":{d:"Einfach und stark: öfter kritische Treffer.",f:{3:["Verbesserter kritischer Treffer: kritisch schon bei 19 oder 20"]}},"Kampfmeister":{d:"Taktiker mit besonderen Manövern.",f:{3:["Überlegenheitswürfel: 4 × W8, laden bei kurzer Rast auf, einer pro Manöver"]},p:{3:["maneuver"]}},"Mystischer Ritter":{d:"Kämpfer mit Magierzaubern.",f:{3:["Zauberwirken mit Intelligenz: 2 Zaubertricks und 3 Zauber von der Magier-Liste (mit SL absprechen, im Zauber-Tab eintragen)","Waffenbindung: Deine Waffe kehrt als Bonusaktion in deine Hand zurück"]}}}},
+ "Kleriker":{lv:1,t:"Domäne",o:{"Domäne des Lebens":{d:"Der beste Heiler.",f:{1:["Übung mit schwerer Rüstung","Jünger des Lebens: Heilzauber heilen zusätzlich 2 + Grad des Zaubers","Domänenzauber (immer vorbereitet): Segnen, Wunden heilen"],2:["Göttliche Macht, Leben bewahren: 5 × Stufe TP Heilung auf Verbündete in 9 m verteilen"],3:["Domänenzauber: Schwache Genesung, Spirituelle Waffe"],5:["Domänenzauber: Hoffnungsschimmer, Wiederbeleben"]}},"Domäne des Lichts":{d:"Feuer und Licht gegen die Finsternis.",f:{1:["Zaubertrick Licht","Schützendes Aufblitzen: Reaktion, damit ein Angreifer Nachteil hat (WEI-Mod mal pro langer Rast)","Domänenzauber (immer vorbereitet): Brennende Hände, Feenfeuer"],2:["Göttliche Macht, Strahlen der Morgendämmerung: Gegner in 9 m nehmen 2W10 + Stufe gleißenden Schaden"],3:["Domänenzauber: Flammenkugel, Sengender Strahl"],5:["Domänenzauber: Tageslicht, Feuerball"]}},"Domäne des Krieges":{d:"Heiliger Krieger an der Front.",f:{1:["Übung mit Kriegswaffen und schwerer Rüstung","Kriegspriester: WEI-Mod mal pro langer Rast ein Waffenangriff als Bonusaktion","Domänenzauber (immer vorbereitet): Göttliche Gunst, Schild des Glaubens"],2:["Göttliche Macht, Geleiteter Schlag: +10 auf einen Angriffswurf"],3:["Domänenzauber: Magische Waffe, Spirituelle Waffe"],5:["Domänenzauber: Kreuzfahrermantel, Geisterwächter"]}}}},
+ "Magier":{lv:2,t:"Arkane Tradition",o:{"Schule der Hervorrufung":{d:"Schadenszauber, die Freunde verschonen.",f:{2:["Zauber formen: Verbündete überstehen deine Hervorrufungszauber automatisch"]}},"Schule der Bannmagie":{d:"Schutzmagie und Abwehr.",f:{2:["Arkaner Schutz: Beim Wirken von Bannzaubern entsteht ein Schild mit 2 × Stufe + INT TP"]}},"Schule der Erkenntnismagie":{d:"Blick in die Zukunft.",f:{2:["Vorahnung: Nach jeder langen Rast 2 W20 würfeln und merken, damit kannst du später Würfe ersetzen"]}}}},
+ "Mönch":{lv:3,t:"Tradition",o:{"Weg der offenen Hand":{d:"Meister des waffenlosen Kampfs.",f:{3:["Technik der offenen Hand: Bei Schlaghagel-Treffern das Ziel umwerfen, 4,5 m wegstoßen oder ihm die Reaktion nehmen"]}},"Weg des Schattens":{d:"Ninja-artiger Schleicher.",f:{3:["Schattenkünste: 2 Ki für Dunkelheit, Dunkelsicht, Stille oder Spurlos. Zaubertrick Kleine Illusion"]}},"Weg der vier Elemente":{d:"Ki als Feuer, Wasser, Luft und Erde.",f:{3:["Elementarjünger: 2 Elementardisziplinen, mit dem SL aus dem Buch wählen"]}}}},
+ "Paladin":{lv:3,t:"Heiliger Eid",o:{"Eid der Hingabe":{d:"Der klassische edle Ritter.",f:{3:["Göttliche Macht (1× pro kurzer Rast): Heilige Waffe (+CHA auf Angriffe) oder Unheilige vertreiben","Eidzauber (immer vorbereitet): Schutz vor Gut und Böse, Heiligtum"],5:["Eidzauber: Schwache Genesung, Zone der Wahrheit"]}},"Eid der Alten":{d:"Beschützer von Natur, Licht und Freude.",f:{3:["Göttliche Macht (1× pro kurzer Rast): Zorn der Natur (Ranken fesseln) oder Treulose vertreiben","Eidzauber (immer vorbereitet): Verstrickender Schlag, Tierfreundschaft"],5:["Eidzauber: Mondstrahl, Nebelschritt"]}},"Eid der Rache":{d:"Jäger, der das Böse um jeden Preis bestraft.",f:{3:["Göttliche Macht (1× pro kurzer Rast): Feind abschwören oder Gelübde der Feindschaft (Vorteil gegen ein Ziel)","Eidzauber (immer vorbereitet): Mal des Jägers, Verderben"],5:["Eidzauber: Person festhalten, Nebelschritt"]}}}},
+ "Schurke":{lv:3,t:"Archetyp",o:{"Dieb":{d:"Der klassische Einbrecher und Kletterer.",f:{3:["Flinke Finger: Fingerfertigkeit, Diebeswerkzeug oder Gegenstand benutzen als Bonusaktion","Fassadenkletterer: Klettern kostet keine extra Bewegung"]}},"Assassine":{d:"Tödlich, wenn der Gegner nicht aufpasst.",f:{3:["Übung: Verkleidungs- und Giftmischerausrüstung","Meucheln: Vorteil gegen Gegner, die noch nicht dran waren. Treffer gegen überraschte Gegner sind kritisch"]}},"Arkaner Betrüger":{d:"Schurke mit Illusionsmagie.",f:{3:["Zauberwirken mit Intelligenz: Magierhand, 2 Zaubertricks und 3 Zauber von der Magier-Liste (mit SL absprechen, im Zauber-Tab eintragen)","Magierhand-Trickserei: unsichtbare Magierhand, die Taschen leeren und Schlösser öffnen kann"]}}}},
+ "Waldläufer":{lv:3,t:"Archetyp",o:{"Jäger":{d:"Spezialist gegen bestimmte Gegner.",f:{3:[]},p:{3:["hunter"]}},"Tiermeister":{d:"Kämpft mit einem Tierbegleiter.",f:{3:["Tierbegleiter: Ein Tier bis HG 1/4 (z. B. Wolf, Falke) kämpft an deiner Seite (Werte im Buch)"]}}}},
+ "Zauberer":{lv:1,t:"Zauberursprung",o:{"Drakonische Blutlinie":{d:"Drachenblut: zäher und mit Drachenschuppen.",f:{1:["Drachenvorfahr: Wähle eine Drachenfarbe, du sprichst Drakonisch","Drakonische Widerstandskraft: +1 TP pro Stufe, ohne Rüstung RK 13 + GES"]},hp:1,armor:"drake"},"Wilde Magie":{d:"Chaotische Magie mit Überraschungen.",f:{1:["Welle wilder Magie: Nach Zaubern kann der SL auf die Tabelle der wilden Magie würfeln lassen","Gezeiten des Chaos: 1× pro langer Rast Vorteil auf einen Wurf"]}}}}
+};
+let LU=null;
+const luSub=c=>{const S=SUB[c.cls];return S&&S.o[LU.sub||c.subclass]};
+const luNewSub=c=>!!(LU.sub&&!c.subclass);
+function luPicks(c){const so=luSub(c);let p=[...((LP[c.cls]||{})[LU.to]||[])];
+  if(so&&so.p)for(const l in so.p)if(luNewSub(c)?+l<=LU.to:+l===LU.to)p.push(...so.p[l]);return p}
+function luSteps(c){const S=SUB[c.cls],s=[];if(!LU.catch)s.push("tp","neu");
+  if(S&&!c.subclass&&LU.to>=S.lv)s.push("sub");s.push(...luPicks(c).map(p=>"pk:"+p));
+  if(LU.to===4&&!LU.catch)s.push("asi");s.push("fertig");return s}
+function luOpts(c,p){const P=PK[p];if(P.type==="exp")return c.skills.filter(s=>!c.expertise.includes(s));
+  if(P.type==="skill")return SKILLS.map(s=>s[0]).filter(s=>!c.skills.includes(s));
+  const own=c.picks[P.g||p]||[];return Object.keys(P.o).filter(n=>!own.includes(n))}
+function luOk(c,st){const k=cls(c);
+  if(st==="tp")return LU.hp?"":"Wähle, wie deine TP steigen.";
+  if(st==="sub")return LU.sub?"":"Wähle eine Möglichkeit.";
+  if(st.startsWith("pk:")){const p=st.slice(3),n=Math.min(PK[p].n,luOpts(c,p).length),h=(LU.pk[p]||[]).length;return h<n?"Wähle noch "+(n-h)+".":""}
+  if(st==="asi"){const need=LU.asi.m==="two"?2:1;return LU.asi.a.length<need?"Wähle noch "+(need-LU.asi.a.length)+" Attribut(e).":""}
+  return ""}
+function luGain(c){const k=cls(c),m=mod(c.scores.con),r=LU.hp==="roll"?LU.roll:k.hd/2+1;return {r,m,g:Math.max(1,r+m)+(c.hpLvlBonus||0)}}
+function luView(c,st){const k=cls(c),S=SUB[c.cls];
+  if(st==="tp"){const hd=k.hd,m=mod(c.scores.con),g=LU.hp?luGain(c):null;
+    return `<div class="hint">Mit jeder Stufe hältst du mehr aus. Du bekommst deinen Trefferwürfel (W${hd}) + deinen KON-Modifikator (${sg(m)}) als neue TP. Du kannst würfeln oder den sicheren Durchschnitt nehmen.</div>
+    <div class="wcards">${card("data-luhp","avg",LU.hp==="avg","Durchschnitt nehmen","Sicher: "+(hd/2+1)+" + KON","")}${card("data-luhp","roll",LU.hp==="roll",LU.hp==="roll"?"Gewürfelt: "+LU.roll:"Würfeln","Glückssache: 1 bis "+hd+" + KON",LU.hp==="roll"?"Nur einmal würfeln, so ist es fair.":"")}</div>
+    ${g?`<p><b>Du bekommst +${g.g} TP</b> (${g.r} ${sg(g.m)} KON${c.hpLvlBonus?" +"+c.hpLvlBonus+" Volk/Ursprung":""}).</p>`:""}`}
+  if(st==="neu"){const f=[...((LV[c.cls]||{})[LU.to]||[])],x=Object.assign({},c,{level:LU.to});
+    if(LU.to===4)f.push("Attributswerterhöhung: Du verbesserst gleich deine Attribute");
+    if(profB(x)>profB(c))f.push("Übungsbonus steigt auf "+sg(profB(x)));
+    if(slotsMax(x).join()!==slotsMax(c).join())f.push("Mehr Zauberplätze: "+slotsMax(x).map((v,i)=>v?`${v}× Grad ${i+1}`:"").filter(Boolean).join(", "));
+    if(c.subclass){const so=S.o[c.subclass];if(so&&so.f[LU.to])f.push(...so.f[LU.to])}
+    return `<div class="hint">Das kannst du ab Stufe ${LU.to} neu. Es wird automatisch in deine Merkmale eingetragen.</div>${f.length?`<div class="card">${ul(f)}</div>`:`<p class="muted">Auf dieser Stufe gibt es für deine Klasse nichts Neues außer TP. Das ist normal!</p>`}
+    ${isCaster(c)||k.cast?`<p class="small muted">Neue Zauber trägst du im Zauber-Tab ein. Das Feld dort schlägt dir Namen vor.</p>`:""}`}
+  if(st==="sub"){const so=luSub(c);return `<div class="hint">${LU.catch?"Als "+esc(c.cls)+" wählst du das schon auf Stufe 1. ":""}Jetzt spezialisierst du dich: Dein ${S.t} gibt dir eigene Fähigkeiten. Such dir aus, was zu deinem Charakter passt, gern auch zusammen mit dem Spielleiter.</div>
+    <div class="wcards">${Object.entries(S.o).map(([n,v])=>card("data-lusub",n,LU.sub===n,n,v.d,"")).join("")}</div>
+    ${so?`<div class="hint"><b>Das bekommst du:</b>${ul(Object.entries(so.f).filter(([l])=>+l<=LU.to).flatMap(([,a])=>a))}</div>`:""}`}
+  if(st.startsWith("pk:")){const p=st.slice(3),P=PK[p],sel=LU.pk[p]||[],n=Math.min(P.n,luOpts(c,p).length),full=sel.length>=n;
+    return `<div class="hint"><b>${P.t}:</b> Wähle ${n}. ${P.type==="exp"?"Bei diesen Fertigkeiten zählt dein Übungsbonus doppelt.":P.type==="skill"?"In diesen Fertigkeiten bist du ab jetzt geübt.":"Tippe an, was dir gefällt."}</div>
+    ${luOpts(c,p).map(x=>`<div class="skedit"><span>${esc(SKN[x]||x)}${P.o&&P.o[x]?`<small class="muted" style="display:block;font-size:13px">${esc(P.o[x])}</small>`:""}</span><span></span><button class="tog ${sel.includes(x)?"on":""}" data-lupk="${p}|${esc(x)}" ${full&&!sel.includes(x)?"disabled":""}>${sel.includes(x)?"gewählt":"wählen"}</button></div>`).join("")}`}
+  if(st==="asi"){const two=LU.asi.m==="two";
+    return `<div class="hint">Du darfst deine Attribute verbessern: <b>+2 auf eins</b> oder <b>+1 auf zwei</b>, höchstens bis 20. Tipp: Der Modifikator steigt nur bei geraden Werten, bring dein wichtigstes Attribut (${esc(CI[c.cls].main)}) also auf eine gerade Zahl.</div>
+    <div class="btnrow"><button class="chip ${two?"on":""}" data-luasim="two">+1 auf zwei</button><button class="chip ${two?"":"on"}" data-luasim="one">+2 auf eins</button></div>
+    <div class="grid3" style="margin-top:12px">${ABIL.map(([a,l])=>{const on=LU.asi.a.includes(a),v=c.scores[a],nv=Math.min(20,v+(on?(two?1:2):0)),dis=v>=20||(!on&&LU.asi.a.length>=(two?2:1));
+      return `<button class="stat ${on?"wcard on":""}" data-luasi="${a}" ${dis?"disabled":""} style="${dis&&!on?"opacity:.45":""}"><b>${nv}</b><span>${l} (${sg(mod(nv))})</span></button>`}).join("")}</div>`}
+  const g=LU.catch?null:luGain(c),so=luSub(c),items=[];
+  if(g)items.push(`TP: ${c.hpMax} → ${c.hpMax+g.g}`);if(LU.sub)items.push(S.t+": "+LU.sub);
+  luPicks(c).forEach(p=>(LU.pk[p]||[]).forEach(x=>items.push(PK[p].t+": "+(SKN[x]||x))));
+  if(LU.to===4&&!LU.catch)items.push("Attribute: "+LU.asi.a.map(a=>AB[a][2]+" +"+(LU.asi.m==="two"?1:2)).join(", "));
+  return `<div class="hint">Alles bereit! Tippe auf ${LU.catch?"„Übernehmen“":"„Aufsteigen“"}. Alles lässt sich später unter „Bearbeiten“ und „Notizen“ ändern.</div><div class="card">${ul(items)}</div>`}
+function luRender(){const c=cur(),S=luSteps(c),st=S[LU.step],err=luOk(c,st),last=LU.step===S.length-1;
+  $("#hero").innerHTML=`<p class="small muted" style="margin:0">${LU.catch?"Unterklasse wählen":"Aufstieg auf Stufe "+LU.to}, Schritt ${LU.step+1} von ${S.length}</p><div class="wprog"><i style="width:${(LU.step+1)/S.length*100}%"></i></div><h1>${{tp:"Trefferpunkte",neu:"Neue Fähigkeiten",sub:(SUB[c.cls]||{}).t,asi:"Attribute verbessern",fertig:"Zusammenfassung"}[st]||PK[st.slice(3)].t}</h1>`;
+  $("#main").innerHTML=luView(c,st)+(err?`<p class="small muted" style="margin-top:14px">${err}</p>`:"");
+  $("#nav").innerHTML=`<div class="wnav"><button data-lu="${LU.step?"back":"cancel"}">${LU.step?"Zurück":"Abbrechen"}</button>${last?`<button class="go" data-lu="apply">${LU.catch?"Übernehmen":"Aufsteigen"}</button>`:`<button class="go" data-lu="next" ${err?"disabled":""}>Weiter</button>`}</div>`}
+function luApply(){const c=cur(),S=SUB[c.cls],lines=[],oldCon=mod(c.scores.con);
+  if(!LU.catch){const g=luGain(c);c.level=LU.to;c.hpMax+=g.g;c.hp+=g.g;lines.push(...((LV[c.cls]||{})[LU.to]||[]))}
+  if(LU.to===4&&!LU.catch){LU.asi.a.forEach(a=>c.scores[a]=Math.min(20,c.scores[a]+(LU.asi.m==="two"?1:2)));const d2=mod(c.scores.con)-oldCon;if(d2){c.hpMax+=d2*c.level;c.hp+=d2*c.level}
+    lines.push("Attributswerterhöhung: "+LU.asi.a.map(a=>AB[a][2]+" +"+(LU.asi.m==="two"?1:2)).join(", "))}
+  if(luNewSub(c)){const so=S.o[LU.sub];c.subclass=LU.sub;Object.entries(so.f).forEach(([l,a])=>{if(+l<=LU.to)lines.push(...a)});
+    if(so.hp){c.hpLvlBonus=(c.hpLvlBonus||0)+so.hp;c.hpMax+=so.hp*c.level;c.hp+=so.hp*c.level}if(so.armor&&c.armor==="none")c.armor=so.armor}
+  else if(c.subclass&&!LU.catch){const so=S&&S.o[c.subclass];if(so&&so.f[LU.to])lines.push(...so.f[LU.to])}
+  luPicks(c).forEach(p=>{const P=PK[p],sel=LU.pk[p]||[];
+    if(P.type==="exp"){c.expertise.push(...sel);lines.push("Expertise: "+sel.map(x=>SKN[x]).join(", "));return}
+    if(P.type==="skill"){c.skills.push(...sel);lines.push("Neue Fertigkeiten: "+sel.map(x=>SKN[x]).join(", "));return}
+    const g=P.g||p;c.picks[g]=[...(c.picks[g]||[]),...sel];
+    sel.forEach(x=>{lines.push(P.t+", "+x+": "+P.o[x]);
+      if(x==="Verteidigung")c.acBonus=(+c.acBonus||0)+1;
+      if(x==="Betörender Einfluss")["taeuschen","ueberzeugen"].forEach(s=>{if(!c.skills.includes(s))c.skills.push(s)});
+      if(x==="Qualvoller Strahl")c.attacks.forEach(a=>{if(a.name==="Schauriger Strahl"&&!/\+/.test(a.die))a.die+="+"+mod(c.scores.cha)})})});
+  c.features=(c.features?c.features+"\n\n":"")+(LU.catch?"— "+(S.t)+": "+LU.sub+" —":"— Stufe "+LU.to+" —")+"\n"+lines.join("\n");
+  const to=LU.to,wasCatch=LU.catch;LU=null;save(c);tab="kampf";render();scrollTo(0,0);
+  showRoll(wasCatch?"✓":to,wasCatch?c.subclass:"Stufe "+to+"!",wasCatch?"Fähigkeiten eingetragen":"TP jetzt "+c.hpMax,"Alles steht unter Notizen bei den Merkmalen.")}
+document.addEventListener("click",e=>{const t=e.target.closest("button");if(!t||!LU)return;const D=t.dataset,c=cur();
+  if(D.lu){const S=luSteps(c);if(D.lu==="next"&&!luOk(c,S[LU.step]))LU.step++;if(D.lu==="back")LU.step--;if(D.lu==="cancel")LU=null;if(D.lu==="apply")return luApply();render();scrollTo(0,0);return}
+  if(D.luhp){if(D.luhp==="roll"&&!LU.roll)LU.roll=d(cls(c).hd);if(D.luhp==="avg"&&LU.roll){}else LU.hp=D.luhp;if(D.luhp==="avg"&&!LU.roll)LU.hp="avg";render();return}
+  if(D.lusub){if(LU.sub!==D.lusub){LU.sub=D.lusub;LU.pk={}}render();return}
+  if(D.lupk){const[p,x]=D.lupk.split("|");LU.pk[p]=LU.pk[p]||[];toggle(LU.pk[p],x);render();return}
+  if(D.luasim){LU.asi={m:D.luasim,a:[]};render();return}
+  if(D.luasi){toggle(LU.asi.a,D.luasi);render();return}
+},true);
 
 /* ---------- Start ---------- */
 loadLocal();chars=chars.map(normalize);render();
